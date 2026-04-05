@@ -24,19 +24,25 @@ If, once initiated, the conflict was largely endogenously sustained through tit-
 
 The consociational power-sharing arrangement following the Agreement mandates coalition government by both Republican and Loyalist parties [@anderson2008]. This arrangement has led to little change in ethno-sectarian identity politics; indeed, the political success of Sinn Féin at the expense of the more moderate SDLP suggests sectarian identity may matter more, not less, to voting intentions [@mcglynn2014]. Cross-ethnic parties have seen limited success, attributed to the consociational institutions themselves [@murtagh2015].
 
-::: {.callout-warning}
-## Section requiring update for 2026 context
-The following developments since the original 2017 manuscript need to be incorporated:
+Since 2017, Northern Ireland has experienced considerable political turbulence. Brexit created an effective customs border in the Irish Sea via the Northern Ireland Protocol (2020), provoking Unionist opposition and a two-year DUP boycott of the Stormont Assembly (February 2022 to February 2024). The Windsor Framework (2023) attempted to resolve these tensions, and devolved government was restored in February 2024 with Sinn Féin's Michelle O'Neill as First Minister --- the first Irish republican in the role.
 
-- **Brexit and the Northern Ireland Protocol** (2020): Created an effective customs border in the Irish Sea, provoking Unionist opposition
-- **Windsor Framework** (2023): Attempted to resolve Protocol tensions
-- **Stormont collapse and restoration**: The Assembly was suspended 2022--2024 due to DUP objections to the Protocol; restored February 2024
-- **Violence indicators**: Have there been increases in paramilitary activity, sectarian incidents, or security alerts since Brexit?
-- **Demographic shifts**: Catholic/nationalist population now a plurality in NI (2021 Census); implications for constitutional question
-- **Updated HMD data through 2023**: Does the decay continue as predicted, or are there post-2017 deviations?
+Security indicators have continued to decline: in 2024--25 there were zero security-related deaths and shooting incidents fell. However, paramilitary structures persist at reduced levels, with loyalist involvement in the Ballymena riots of June 2025 demonstrating continued capacity for mobilisation. An Independent Expert on paramilitary disbandment was appointed in September 2025, with a report expected mid-2026.
 
-These updates should be informed by the literature scan currently in progress.
-:::
+Meanwhile, the demographic landscape has shifted. The 2021 Census showed Catholics as the largest single community in Northern Ireland for the first time, with implications for the constitutional question that the consociational framework was designed to manage.
+
+### The long shadow: post-conflict mortality
+
+Perhaps the most significant development since 2017 for understanding the full cost of the Troubles is the growing evidence of a post-conflict mortality burden. Suicide rates in Northern Ireland are the highest in the UK, with @oneill2020 documenting a 63% increase in male suicide and 43% in female suicide between 2000 and 2018. NISRA linked-data analysis covering 2011--2022 found 1,649 suicides, 1,049 drug deaths, and 3,675 alcohol deaths in those aged 16--64, disproportionately affecting males, the economically inactive, and residents of Greater Belfast [@nisra2025].
+
+The NICOLA cohort study --- the first large-scale longitudinal ageing study in Northern Ireland --- includes detailed Troubles exposure measures linked to objective health outcomes [@nicola2023]. Early findings show frailty prevalence in Northern Ireland at nearly double that of the Republic of Ireland (29% vs 15%), and structural equation modelling has demonstrated associations between Troubles traumatic exposure and later-life cognitive decline.
+
+These findings suggest that the initiation-decay model, while capturing the acute mortality signature of the conflict, may underestimate its full demographic cost by omitting the delayed, indirect effects that manifest as elevated suicide, substance misuse, and accelerated ageing in exposed cohorts.
+
+### Positioning within conflict demography
+
+Since 2017, conflict demography has matured as a field. @riffe2025 introduce a special collection on demography and war, covering conflict-related migration, fertility effects, and health consequences. New methodological approaches include Bayesian conflict mortality estimation with formal uncertainty quantification [@wagner2025] and bereavement multiplier frameworks that show populations continue experiencing considerable loss decades after conflict ends [@arelbundock2025]. Research on the Vietnam War draft lottery has demonstrated significant excess mortality in combat-exposed populations well beyond the combat period itself [@vietnam2025].
+
+The initiation-decay model proposed here sits naturally within this growing literature, offering a parsimonious framework for characterising conflict mortality dynamics from aggregate data. @daly2025 provide updated joint life tables for Ireland and Northern Ireland (2000--2021) using GAM-based approaches, offering a complementary perspective on recent mortality divergence between the two jurisdictions.
 
 ### Latent conditions for re-initiation
 

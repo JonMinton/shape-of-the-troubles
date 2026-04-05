@@ -152,15 +152,51 @@ The impulse-decay model is fitted to all HMD countries with at least 50 years of
 
 ### Summary of estimates {#sec-results-summary}
 
-@tbl-headline presents the paper's principal output: cumulative excess mortality estimates for each detected conflict, derived from all-cause mortality data alone.
+@tbl-headline presents the paper's principal output: a characterisation of each detected conflict in terms of its demographic dynamics and estimated human cost, derived from all-cause mortality data alone.
 
 ```{r}
 #| label: tbl-headline
-#| tbl-cap: "Estimated conflict-attributable excess mortality from all-cause data. Northern Ireland validated against independent tallies; other estimates are novel."
+#| tbl-cap: "Conflict dynamics and excess mortality estimates from all-cause data. All estimates refer to males aged 15--45. Half-life and time to 5% intensity are defined on the log₁₀ mortality scale. Northern Ireland validated against independent tallies; other estimates are novel."
 #| eval: false
 
 # TODO: The headline table
-# Columns: Country | Conflict | Onset (95% CI) | Half-life (95% CI) |
-#          Cumulative excess deaths (95% CI) | Independent tally | Ratio
-# NI row serves as calibration; other rows are the paper's novel contribution
+# Columns:
+# 1. Country / Conflict
+# 2. Estimated onset (95% CI)
+# 3. Impulse size: peak excess log10 mortality at most-affected age in onset year
+# 4. Half-life (years, 95% CI): time for log-mortality excess to halve
+# 5. Excess deaths (first 5 years): cumulative excess in years 1-5 post-onset
+# 6. Time to 5% intensity (years): ln(0.05)/ln(1-k), effective demographic end
+# 7. Cumulative excess to date: total estimated excess through latest data year
+# 8. Expected total cumulative: asymptotic total (geometric series sum D1/k)
+# 9. Independent tally (where available)
+# 10. Ratio: model estimate / independent tally
+#
+# Example rows (illustrative, to be replaced with actual estimates):
+#
+# NI / Troubles:
+#   Onset: 1972 (1971-1973)
+#   Impulse: ~0.25 log10 units at age 18
+#   Half-life: 6.8 yr (5.5-8.5)
+#   5-yr excess: ~1,050
+#   Time to 5%: ~29 yr (i.e. ~2001)
+#   Cumulative to date (2023): ~2,780 (2,200-3,400)
+#   Expected total: ~2,850 (tail nearly exhausted by 2023)
+#   Independent: 3,598 (Smyth 1998)
+#   Ratio: 0.77
+#
+# Algeria / Black Decade:
+#   Onset: 1994 (1992-1995)
+#   Impulse: TBD
+#   Half-life: 3.1 yr (TBD)
+#   5-yr excess: TBD
+#   Time to 5%: ~13.6 yr (i.e. ~2008)
+#   Cumulative to date: TBD
+#   Expected total: TBD
+#   Independent: 44,000-200,000 (all ages/sexes, contested)
+#   Ratio: TBD
 ```
+
+The table characterises each conflict along two axes: **intensity** (impulse size, 5-year excess) and **persistence** (half-life, time to 5%). These are substantively distinct. A high-intensity short-persistence conflict (large impulse, short half-life) has a different demographic and political character from a lower-intensity long-persistence conflict. Northern Ireland exemplifies the latter: a conflict of moderate initial intensity that was sustained endogenously over decades through tit-for-tat dynamics.
+
+The "expected total cumulative" column exploits the parametric form of the model. Because the excess decays geometrically, the asymptotic total is calculable as an infinite geometric series. The difference between "cumulative to date" and "expected total" indicates how much residual excess mortality is still accruing — a quantity that is invisible without a model but is relevant to ongoing policy and post-conflict health planning. For Northern Ireland, the model implies the Troubles were still contributing measurable (if small) excess mortality well into the 2000s, long after the Good Friday Agreement.

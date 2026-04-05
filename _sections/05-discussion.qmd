@@ -1,20 +1,45 @@
-<!-- Discussion section -->
-<!-- Key arguments from original: -->
-<!-- 1. Model estimate (~2,800) close to conflict-death aggregations (~3,500) -->
-<!-- 2. Model captures indirect/ripple deaths not just direct conflict deaths -->
-<!-- 3. Tit-for-tat dynamics explain the decay pattern -->
-<!-- 4. Political events (Good Friday Agreement) followed rather than led violence reduction -->
-<!-- 5. Conditions for re-initiation may remain -->
-<!-- 6. UPDATE NEEDED: Reframe from Brexit-specific to broader conflict-demography lessons -->
+<!-- Drafted from third version manuscript, substantially updated for 2026 -->
 
-::: {.callout-note}
-## Draft status
-This section needs drafting. The core arguments are sound but the framing
-needs updating from the 2017 Brexit context. Consider:
+### Comparison of mortality estimates {#sec-comparison}
 
-- What has happened in NI politics since 2017? (Protocol, Windsor Framework, Assembly restoration)
-- Has there been any resurgence in violence indicators?
-- Broader relevance: the initiation-decay model as a general framework for conflict demography
-- Comparison with other conflicts (the Algeria analysis in the original repo)
-- Updated HMD data through 2023 — does the decay continue as predicted?
+@smyth1998 estimated 3,598 deaths were attributed killings in the conflict between 1969 and 1998; this compares with our model's estimate of approximately 2,661 excess deaths between 1969 and 1998 in younger adult males in Northern Ireland alone. Other estimates are broadly similar: @mcdowell2008 estimated slightly under 3,700 deaths, and @curran2001 estimated 3,740 between 1969 and 1999.
+
+Our model, based only on all-cause mortality data, captures around three-quarters of the deaths that were directly attributed to political violence. This suggests that the key modelling assumption --- an initiation event leading to a conflict whose intensity decays slowly over decades --- captures something of the essence of what occurred in Northern Ireland.
+
+Several factors may explain the discrepancy. First, the model does not explicitly capture the particularly high spike in deaths in 1972--73. Second, mortality displacement effects may have operated: homicide and suicide rates tend to be inversely correlated in young adult males [@curran2001; @durkheim1951; @lester2002], and the high "bonding capital" within Northern Irish communities, though responsible for sustaining conflict, may have been protective against other causes of death [@leonard2004]. Third, the Troubles likely caused net emigration from affected populations, acting as a competing risk that the model does not fully account for.
+
+### Methodological considerations
+
+This research originated through Lexis surface visualisation comparing Scottish mortality with neighbouring populations [@minton2017]. In that comparison, a distinct visual signal in Northern Irish male mortality was identified after 1972. The incidental origins of this paper highlight the value of what Robert K. Merton called "theories of the middle range" --- allowing hypotheses to emerge inductively from data exploration rather than being applied deductively from theory [@merton1968].
+
+The initiation-decay model specification can be applied to other settings where mortality disruptions attributable to conflict are suspected, even when only aggregate all-cause mortality data are available and specific cause-of-death codes are not consistently recorded. This is likely to be the case both for less affluent nations in recent years and for historical demographic data. The model allows conflict-attributable mortality to be characterised in terms of both initial intensity and duration (via the decay rate and half-life).
+
+An alternative counterfactual approach would be to construct a "synthetic Northern Ireland" through weighted averages of comparator populations, using the Synthetic Control Method [@abadie2015]. Further research using this and other approaches to counterfactual estimation is encouraged.
+
+### The initiation-decay model and the peace process {#sec-peace}
+
+If, once initiated, the conflict was largely endogenously sustained through tit-for-tat dynamics, this has important implications for how the various peace initiatives should be interpreted. Up to seven prior attempts at bringing peace were made between 1969 and the Belfast (Good Friday) Agreement of 1998, including the Sunningdale Agreement of 1973. It has been argued that the Belfast Agreement succeeded due to key individuals acting as "brokers" in complex social networks [@goddard2012]. However, if the underlying dynamics of our model are accurate, such factors may be overstated. With a half-life of 6.76 years beginning in 1972, by 1994 the intensity of the conflict had diminished to approximately one-tenth of its initial level, and by the 1998 Agreement to around 7%. The political conditions for peace may have been a consequence of declining violence rather than its cause.
+
+### Northern Ireland since the Good Friday Agreement
+
+The consociational power-sharing arrangement following the Agreement mandates coalition government by both Republican and Loyalist parties [@anderson2008]. This arrangement has led to little change in ethno-sectarian identity politics; indeed, the political success of Sinn Féin at the expense of the more moderate SDLP suggests sectarian identity may matter more, not less, to voting intentions [@mcglynn2014]. Cross-ethnic parties have seen limited success, attributed to the consociational institutions themselves [@murtagh2015].
+
+::: {.callout-warning}
+## Section requiring update for 2026 context
+The following developments since the original 2017 manuscript need to be incorporated:
+
+- **Brexit and the Northern Ireland Protocol** (2020): Created an effective customs border in the Irish Sea, provoking Unionist opposition
+- **Windsor Framework** (2023): Attempted to resolve Protocol tensions
+- **Stormont collapse and restoration**: The Assembly was suspended 2022--2024 due to DUP objections to the Protocol; restored February 2024
+- **Violence indicators**: Have there been increases in paramilitary activity, sectarian incidents, or security alerts since Brexit?
+- **Demographic shifts**: Catholic/nationalist population now a plurality in NI (2021 Census); implications for constitutional question
+- **Updated HMD data through 2023**: Does the decay continue as predicted, or are there post-2017 deviations?
+
+These updates should be informed by the literature scan currently in progress.
 :::
+
+### Latent conditions for re-initiation
+
+The original paper argued that the conditions for renewed conflict remained latent in Northern Irish society. The intervening years have tested but not yet broken the peace. The secondary transfer effect (STE) in social psychology posits that improved attitudes between antagonistic groups also improve attitudes towards additional outgroups [@tausch2010; @schmid2014]. Without mutual acceptance by Unionists and Nationalists of each other, tolerance towards other groups may continue to lag behind neighbouring societies [@ashe2009] --- and this lag may serve as a barometer for the degree of latent sectarianism and thus vulnerability to re-initiation.
+
+The initiation-decay model implies that a new triggering event could restart the cycle. The question for Northern Ireland is whether the institutional, economic, and social changes since 1998 have altered the underlying "fissility" of the population, or merely managed a conflict whose fundamental drivers remain unresolved.

@@ -1,14 +1,14 @@
-<!-- Historical context: Ireland, Northern Ireland, and the Troubles -->
-<!-- This section is largely stable from the third version — covers: -->
-<!-- - Turchin's metaethnic frontier theory -->
-<!-- - Ireland's position within the British Empire -->
-<!-- - Partition and establishment of Northern Ireland (1922) -->
-<!-- - Civil rights movement and escalation (late 1960s) -->
-<!-- - Bloody Sunday (1972) as ignition point -->
-<!-- - The long decay of violence through to the Good Friday Agreement -->
+<!-- Migrated from third version manuscript, lightly edited for clarity -->
+<!-- This section is largely stable; the historical account does not need updating -->
 
-::: {.callout-note}
-## Draft status
-This section can be largely migrated from the third version manuscript.
-Minor updates may be needed for post-2017 developments.
-:::
+The mathematical ecologist turned historian Peter Turchin has argued that one of the central challenges in the establishment and maintenance of complex, large, hierarchical societies is the promotion of social cohesiveness across ethnic groups [@turchin2009]. Turchin suggests that complex societies can emerge only once metaethnic communities, in which group membership can be readily identified through "symbolic markers", have been established. Religion --- particularly the exclusive, proselytising kinds such as Christianity or Islam --- serves as one of the most commonly used symbolic markers to delineate metaethnic communities. Common metaethnic identity allows for greater within-group cohesiveness, but where distinct and mutually exclusive metaethnic groups are territorially contiguous, metaethnic frontiers form, and at these frontiers competition and conflict is often intense. The conditions for a metaethnic frontier in the island of Ireland, demarcated along Catholic--Protestant religious distinction, were centuries in the making.
+
+Within the political organs of Ireland under the British Empire --- an imperious, expansionist state united by Protestant identity --- positions for Catholics were limited. Ireland held an ambivalent position within the Empire: geographically proximate yet culturally distant, a "colony within the core". Many of the patterns of political control and population management developed in the case of Ireland formed a blueprint for later British colonialism [@anderson2007].
+
+The Great Famine of the 1840s led to mass emigration and population decline. By the end of the 19th century the demography and economy of Ireland had shifted to the North East, particularly to Belfast, and the populist Protestant Orange Order had emerged in response to increasing Catholic political agitation. The backlash to Home Rule from Ulster Unionists led to the establishment of paramilitary organisations on both sides, and a period of civil conflict intensified by the Great War and the Easter Rising of 1916. Ireland was partitioned in 1921, and Northern Ireland was established in 1922 as a distinct administrative territory which voted against Home Rule and to remain British.
+
+@anderson2007 summarise the legacy of partition:
+
+> Under one-party unionist rule for 50 years, Northern Ireland proved to be the most problematic legacy of partition. It provided a "cage" for two communal blocs locked into a mutually antagonistic and self-reproducing relationship with each other. The sizeable nationalist minority was the main loser, disaffected and permanently excluded from state power. [...] The eruption of ethno-national violence a half-century after partition was part of the imperial legacy.
+
+In the late 1960s a Catholic protest movement emerged, inspired by the American civil rights movement, prompting a violent Protestant counter-movement. The British Army was mobilised. The IRA split in 1969 into the less-militant Official IRA and the more militant Provisional IRA (PIRA). Internment in 1971 further inflamed tensions; army troop numbers increased and PIRA bombings intensified. The deployment of the Parachute Regiment culminated in Bloody Sunday on 30 January 1972, when 14 unarmed civil rights marchers were shot dead. This event, more than any other, can be seen to have ignited the decades of sectarian conflict that followed [@thornton2007].

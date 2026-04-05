@@ -34,23 +34,23 @@ source("R/functions.R")
 source("R/config.R")
 ```
 
-## Introduction
+## Introduction {#sec-intro}
 
 {{< include _sections/01-introduction.qmd >}}
 
-## Ireland, Northern Ireland, and the Troubles
+## Ireland, Northern Ireland, and the Troubles {#sec-history}
 
 {{< include _sections/02-historical-context.qmd >}}
 
-## Data and Methods
+## Data and Methods {#sec-methods}
 
 {{< include _sections/03-methods.qmd >}}
 
-## Results
+## Results {#sec-results}
 
 {{< include _sections/04-results.qmd >}}
 
-## Discussion
+## Discussion {#sec-discussion}
 
 {{< include _sections/05-discussion.qmd >}}
 

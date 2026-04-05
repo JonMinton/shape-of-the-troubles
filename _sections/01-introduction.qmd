@@ -1,13 +1,11 @@
-<!-- Introduction: to be drafted from archive/manuscripts third version -->
-<!-- Key arguments to preserve and update: -->
-<!-- 1. The human cost of the Troubles is visible in all-cause mortality data -->
-<!-- 2. Excess deaths in young adult males follow an initiation-decay pattern -->
-<!-- 3. The conditions for renewed conflict may remain latent -->
-<!-- 4. UPDATE NEEDED: Replace Brexit-specific framing with broader policy relevance -->
+<!-- Drafted from third version manuscript, updated for 2026 context -->
 
-::: {.callout-note}
-## Draft status
-This section needs to be drafted from the third version manuscript
-(see `archive/manuscripts/Northern Ireland in Context/contemporary_social_science_ms/third_version/`).
-The Brexit-specific framing (2017) needs updating for 2026 context.
-:::
+The Troubles in Northern Ireland, the period of ethno-sectarian conflict spanning roughly 1968 to 1998, left a demographic scar that is visible in all-cause mortality data decades after the worst violence subsided. This paper uses demographic data to explore and quantify that scar, arguing that the human cost of the Troubles extends beyond the deaths directly attributed to political violence, and that the particular pattern of excess mortality observed carries implications for understanding both the dynamics of the conflict and the fragility of its resolution.
+
+Three specific empirical aims of this paper are: to use demographic data to visually illustrate the "excess deaths" that appear attributable to the initiation of violent conflict in the early 1970s; to produce estimates of total excess deaths based on observed patterns in overall mortality, and compare these with estimates based on deaths directly attributed to violence; and to characterise the particular pattern of excess mortality observed in Northern Irish demographic data.
+
+Substantively, we argue that the fundamentals which led to this earlier wave of death and instability may still be latent within Northern Irish society. The logic of our model challenges a dominant narrative about the peace process in Northern Ireland, suggesting that key political events on the road to peace followed rather than led trends towards reduced violence in the region. This has implications not only for understanding the Troubles retrospectively, but for assessing the resilience of peace in Northern Ireland in the face of ongoing political disruption --- from Brexit and the Northern Ireland Protocol, through the collapse and restoration of the Stormont Assembly, to the broader pressures of economic change and demographic shift.
+
+The initiation-decay model developed here --- in which a triggering event leads to a sudden onset of excess mortality that then decays exponentially over decades --- may also have wider applicability as a framework for quantifying the demographic impact of conflict in other settings, even where only aggregate mortality data are available.
+
+In @sec-history we provide a brief history of the origins of Northern Ireland and the events which led to conflict. @sec-methods introduces the data and methods used to explore the impact of the Troubles on mortality patterns. @sec-results presents descriptive data visualisation and model results. Finally, @sec-discussion compares our estimates with existing conflict-death tallies and discusses the implications of the initiation-decay model for understanding the peace process and ongoing political stability.

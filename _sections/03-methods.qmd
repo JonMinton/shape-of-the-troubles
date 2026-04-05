@@ -1,0 +1,60 @@
+<!-- Methods section -->
+<!-- Core methodology: -->
+<!-- 1. HMD data: all-cause mortality by age, year, sex for NI (GBR_NIR) -->
+<!-- 2. Lexis surface visualisation (level plots) -->
+<!-- 3. Impulse-decay model for Troubles parameter T(t) -->
+<!-- 4. Three-phase mortality improvement model (pre-1938, 1939-1955, post-1955) -->
+<!-- 5. Decay rate optimisation via AIC/BIC -->
+<!-- 6. Counterfactual excess deaths estimation -->
+
+### Data
+
+All-cause mortality counts and population exposure estimates, disaggregated by sex and single year of age and period, were obtained from the Human Mortality Database [@hmd2024] for Northern Ireland (`GBR_NIR`). Comparator populations include Scotland (`GBR_SCO`), England and Wales (`GBRTENW`), the Republic of Ireland (`IRL`), and a composite of Western European nations.
+
+All data management and analyses were performed using R [@rcoreteam2024]. Code to reproduce all analyses is available at <https://github.com/JonMinton/shape-of-the-troubles>.
+
+### Visual exploration
+
+Mortality rates were calculated by dividing death counts by population exposure. These rates were then visualised as Lexis surfaces — heatmaps in which each column represents a year, each row an age, and cell colour indicates the log~10~ mortality rate [@minton2014; @vaupel1997].
+
+### The initiation-decay model
+
+```{r}
+#| label: fig-impulse-decay-schematic
+#| fig-cap: "Schematic of the impulse-decay model for conflict intensity"
+#| eval: false
+
+# TODO: Generate schematic of T(t) parameter
+```
+
+The Troubles parameter $T(t)$ operationalises the hypothesis that conflict followed a single impulse-decay pattern, with events prior to 1972 leading to a tipping point, after which sectarian violence was sustained through tit-for-tat reprisals but gradually attenuated.
+
+Formally:
+
+$$
+T(t) = \begin{cases} 0 & \text{if } t < 1972 \\ (1-k)^{t-1972} & \text{if } t \geq 1972 \end{cases}
+$$
+
+where $k$ is the annual decay rate. The half-life of conflict intensity is $h = \ln(0.5) / \ln(1-k)$.
+
+### Model specification
+
+The full model for log~10~ mortality rate in males aged 15--45 is:
+
+$$
+\log_{10}(\mu_{a,t}) = f(a) + g^{(p)}(a, t) + \beta_a \cdot T(t) + \epsilon_{a,t}
+$$
+
+where $f(a)$ captures age-specific baseline mortality, $g^{(p)}(a, t)$ captures age-specific mortality improvement within phase $p$, and $\beta_a \cdot T(t)$ captures the age-specific effect of the Troubles.
+
+Three mortality improvement phases were identified through visual exploration:
+
+- **Phase 1** (1922--1938): Pre-war baseline
+- **Phase 2** (1939--1955): Rapid improvement (despite including WWII)
+- **Phase 3** (1956 onwards): Continued but slower improvement
+
+The decay rate $k$ was selected to minimise AIC through numerical optimisation.
+
+### Counterfactual estimation
+
+Excess deaths attributable to the Troubles were estimated by comparing predicted deaths under the fitted model with predictions from a counterfactual model in which $T(t) = 0$ for all years.

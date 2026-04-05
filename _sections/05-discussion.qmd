@@ -1,0 +1,20 @@
+<!-- Discussion section -->
+<!-- Key arguments from original: -->
+<!-- 1. Model estimate (~2,800) close to conflict-death aggregations (~3,500) -->
+<!-- 2. Model captures indirect/ripple deaths not just direct conflict deaths -->
+<!-- 3. Tit-for-tat dynamics explain the decay pattern -->
+<!-- 4. Political events (Good Friday Agreement) followed rather than led violence reduction -->
+<!-- 5. Conditions for re-initiation may remain -->
+<!-- 6. UPDATE NEEDED: Reframe from Brexit-specific to broader conflict-demography lessons -->
+
+::: {.callout-note}
+## Draft status
+This section needs drafting. The core arguments are sound but the framing
+needs updating from the 2017 Brexit context. Consider:
+
+- What has happened in NI politics since 2017? (Protocol, Windsor Framework, Assembly restoration)
+- Has there been any resurgence in violence indicators?
+- Broader relevance: the initiation-decay model as a general framework for conflict demography
+- Comparison with other conflicts (the Algeria analysis in the original repo)
+- Updated HMD data through 2023 — does the decay continue as predicted?
+:::

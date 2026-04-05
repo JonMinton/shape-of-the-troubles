@@ -1,0 +1,60 @@
+---
+title: "The Shape of the Troubles: Visualising and Quantifying Conflict-Attributable Excess Deaths in Young Adult Males in Northern Ireland"
+author:
+  - name: Jonathan Minton
+    orcid: 0000-0003-1207-6259
+    email: nate.minton@gmail.com
+    corresponding: true
+date: last-modified
+abstract: |
+  This paper argues that an understanding of the human cost of the Troubles in
+  Northern Ireland is vital for contemporary policy. This human cost is manifest
+  in all-cause mortality records, which are explored visually using Lexis surface
+  plots. A model is developed which formalises a key intuition from the data: excess
+  deaths in young adult males are represented by a component with peak intensity in
+  1972, which then gradually decays over many decades. We call this an
+  initiation-decay model, and based on it estimate the Troubles to have cost nearly
+  3,000 lives in males aged 15--45 alone, with an intensity half-life of nearly
+  seven years. We argue that the conditions which led to this earlier wave of death
+  and instability may still be latent in Northern Irish society.
+keywords:
+  - Northern Ireland
+  - Mortality
+  - Troubles
+  - Data Visualisation
+  - Lexis surface
+  - Conflict demography
+---
+
+```{r}
+#| label: setup
+#| include: false
+source("R/packages.R")
+source("R/functions.R")
+source("R/config.R")
+```
+
+## Introduction
+
+{{< include _sections/01-introduction.qmd >}}
+
+## Ireland, Northern Ireland, and the Troubles
+
+{{< include _sections/02-historical-context.qmd >}}
+
+## Data and Methods
+
+{{< include _sections/03-methods.qmd >}}
+
+## Results
+
+{{< include _sections/04-results.qmd >}}
+
+## Discussion
+
+{{< include _sections/05-discussion.qmd >}}
+
+## References {.unnumbered}
+
+::: {#refs}
+:::

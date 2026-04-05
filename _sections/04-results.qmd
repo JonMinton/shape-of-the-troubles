@@ -1,0 +1,48 @@
+<!-- Results section -->
+<!-- Key figures to reproduce: -->
+<!-- Fig 1: Full Lexis surface, both genders, all ages -->
+<!-- Fig 3: Deaths aged 18-40 by sex, time series -->
+<!-- Fig 4: Zoomed Lexis surface, ages 15-45, both genders -->
+<!-- Fig 5: Predicted / counterfactual / actual surfaces -->
+<!-- Fig 6: Residual surface -->
+<!-- Fig 7: AIC vs decay rate -->
+<!-- Fig 8: Excess deaths surface -->
+<!-- Fig 9: Troubles coefficient by age and sex -->
+<!-- Table 1: Excess deaths by year and age group -->
+
+::: {.callout-note}
+## Draft status
+This section needs computational figures regenerated from updated HMD data.
+The analytical pipeline is preserved in `R/functions.R`.
+Key result from original: ~2,800 excess deaths, half-life ~6.76 years, optimal k = 0.0975.
+:::
+
+### Visual exploration
+
+```{r}
+#| label: fig-lexis-full
+#| fig-cap: "Lexis surface of log10 mortality rates for males and females in Northern Ireland"
+#| eval: false
+
+# TODO: Reproduce from R/functions.R once data is downloaded
+```
+
+### Model results
+
+```{r}
+#| label: fig-decay-optimisation
+#| fig-cap: "Relationship between decay parameter and model fit (AIC)"
+#| eval: false
+
+# TODO: Reproduce decay rate optimisation
+```
+
+### Counterfactual excess deaths
+
+```{r}
+#| label: tbl-excess-deaths
+#| tbl-cap: "Estimated excess male deaths (ages 15-45) attributable to the Troubles"
+#| eval: false
+
+# TODO: Reproduce Table 1
+```

@@ -1,0 +1,14 @@
+<!-- Historical context: Ireland, Northern Ireland, and the Troubles -->
+<!-- This section is largely stable from the third version — covers: -->
+<!-- - Turchin's metaethnic frontier theory -->
+<!-- - Ireland's position within the British Empire -->
+<!-- - Partition and establishment of Northern Ireland (1922) -->
+<!-- - Civil rights movement and escalation (late 1960s) -->
+<!-- - Bloody Sunday (1972) as ignition point -->
+<!-- - The long decay of violence through to the Good Friday Agreement -->
+
+::: {.callout-note}
+## Draft status
+This section can be largely migrated from the third version manuscript.
+Minor updates may be needed for post-2017 developments.
+:::

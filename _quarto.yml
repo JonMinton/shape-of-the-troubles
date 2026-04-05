@@ -1,0 +1,30 @@
+project:
+  type: manuscript
+  output-dir: _output
+
+manuscript:
+  article: manuscript.qmd
+
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+    code-tools: true
+  docx:
+    reference-doc: _extensions/custom-reference.docx
+  pdf:
+    documentclass: article
+    geometry:
+      - margin=2.5cm
+    fontsize: 12pt
+    linestretch: 2
+
+bibliography: references/references.bib
+csl: references/vancouver.csl
+
+execute:
+  echo: false
+  warning: false
+  message: false
+  freeze: auto

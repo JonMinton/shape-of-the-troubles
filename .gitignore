@@ -1,0 +1,22 @@
+# Quarto output
+_output/
+_freeze/
+.quarto/
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# Data (raw HMD downloads may be large)
+data/raw/
+data/processed/*.csv
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credentials
+.env
+.Renviron

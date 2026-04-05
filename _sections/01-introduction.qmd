@@ -1,0 +1,13 @@
+<!-- Introduction: to be drafted from archive/manuscripts third version -->
+<!-- Key arguments to preserve and update: -->
+<!-- 1. The human cost of the Troubles is visible in all-cause mortality data -->
+<!-- 2. Excess deaths in young adult males follow an initiation-decay pattern -->
+<!-- 3. The conditions for renewed conflict may remain latent -->
+<!-- 4. UPDATE NEEDED: Replace Brexit-specific framing with broader policy relevance -->
+
+::: {.callout-note}
+## Draft status
+This section needs to be drafted from the third version manuscript
+(see `archive/manuscripts/Northern Ireland in Context/contemporary_social_science_ms/third_version/`).
+The Brexit-specific framing (2017) needs updating for 2026 context.
+:::

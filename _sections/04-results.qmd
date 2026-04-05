@@ -1,48 +1,166 @@
-<!-- Results section -->
-<!-- Key figures to reproduce: -->
-<!-- Fig 1: Full Lexis surface, both genders, all ages -->
-<!-- Fig 3: Deaths aged 18-40 by sex, time series -->
-<!-- Fig 4: Zoomed Lexis surface, ages 15-45, both genders -->
-<!-- Fig 5: Predicted / counterfactual / actual surfaces -->
-<!-- Fig 6: Residual surface -->
-<!-- Fig 7: AIC vs decay rate -->
-<!-- Fig 8: Excess deaths surface -->
-<!-- Fig 9: Troubles coefficient by age and sex -->
-<!-- Table 1: Excess deaths by year and age group -->
+### Northern Ireland: validation case {#sec-results-ni}
 
-::: {.callout-note}
-## Draft status
-This section needs computational figures regenerated from updated HMD data.
-The analytical pipeline is preserved in `R/functions.R`.
-Key result from original: ~2,800 excess deaths, half-life ~6.76 years, optimal k = 0.0975.
-:::
+Northern Ireland serves as the validation case: the Troubles are well-documented, independent conflict-death tallies exist, and HMD data quality is high. The model's estimates can be directly compared against these tallies to assess calibration.
 
-### Visual exploration
+#### Visual decomposition
+
+@fig-ni-decomposition presents the four-panel decomposition for males aged 15--45 in Northern Ireland, 1922--2023.
 
 ```{r}
-#| label: fig-lexis-full
-#| fig-cap: "Lexis surface of log10 mortality rates for males and females in Northern Ireland"
+#| label: fig-ni-decomposition
+#| fig-cap: "Decomposition of the mortality surface for males aged 15--45 in Northern Ireland. (A) Observed log₁₀ mortality rates. (B) Full model: smooth baseline plus impulse-decay component. (C) Counterfactual: smooth baseline with impulse-decay turned off. (D) Impulse-decay component alone (B minus C), representing estimated conflict-attributable excess mortality."
+#| fig-subcap:
+#|   - "Observed"
+#|   - "Full model (baseline + impulse-decay)"
+#|   - "Counterfactual (baseline only)"
+#|   - "Impulse-decay component"
+#| layout-ncol: 2
 #| eval: false
 
-# TODO: Reproduce from R/functions.R once data is downloaded
+# TODO: Generate four-panel Lexis surfaces once data and model are fitted
+# Panel A: Observed log10 mortality rates
+# Panel B: Predicted surface from full model (smooth + ID component)
+# Panel C: Predicted surface with T(t) = 0 (counterfactual)
+# Panel D: Difference B - C (the impulse-decay component isolated)
 ```
 
-### Model results
+Panel A shows the raw data, including the visible band of elevated mortality in young adult males after 1972. Panel B shows the model's stylised representation — the reader can assess fit by comparing A and B. Panel C shows the counterfactual: what the surface would have looked like had the Troubles not occurred. Panel D isolates the impulse-decay component itself — the conflict's estimated demographic footprint.
+
+#### Parameter estimates
 
 ```{r}
-#| label: fig-decay-optimisation
-#| fig-cap: "Relationship between decay parameter and model fit (AIC)"
+#| label: tbl-ni-params
+#| tbl-cap: "Estimated impulse-decay parameters for Northern Ireland (posterior median and 95% credible interval)"
 #| eval: false
 
-# TODO: Reproduce decay rate optimisation
+# TODO: Table with:
+# - Estimated onset year t_0 (expect ~1972)
+# - Decay rate k (expect ~0.097)
+# - Half-life h (expect ~6.8 years)
+# - Onset sharpness lambda
 ```
 
-### Counterfactual excess deaths
+#### Cumulative excess deaths
+
+@fig-ni-cumulative shows the cumulative estimated excess deaths over time, derived by summing the impulse-decay component (panel D) across ages, weighted by population exposure. The shaded band represents the 95% credible interval from posterior uncertainty in the model parameters.
 
 ```{r}
-#| label: tbl-excess-deaths
-#| tbl-cap: "Estimated excess male deaths (ages 15-45) attributable to the Troubles"
+#| label: fig-ni-cumulative
+#| fig-cap: "Cumulative estimated excess male deaths (ages 15--45) attributable to the Troubles, with 95% credible interval. Dashed line: cumulative directly-attributed conflict deaths from Smyth (1998)."
 #| eval: false
 
-# TODO: Reproduce Table 1
+# TODO: Time series plot
+# - x: year (1972 onwards)
+# - y: cumulative excess deaths
+# - ribbon: 95% CI from posterior
+# - dashed line: Smyth (1998) cumulative tally for comparison
+```
+
+The comparison with the independent tally from @smyth1998 provides a direct calibration check. Our model, using only all-cause mortality data, is expected to capture approximately 75% of the directly-attributed deaths — the remainder reflecting mortality displacement effects, emigration as a competing risk, and the restriction to males aged 15--45 (see @sec-comparison).
+
+#### Female surface
+
+As a specificity check, the same model is applied to the female mortality surface. The impulse-decay component is expected to be absent or negligible for females, consistent with the sex-specific nature of sectarian violence.
+
+```{r}
+#| label: fig-ni-female
+#| fig-cap: "Impulse-decay component for females aged 15--45 in Northern Ireland. Expected to show no meaningful conflict signature."
+#| eval: false
+
+# TODO: Panel D equivalent for females
+```
+
+---
+
+### Algeria: application case {#sec-results-algeria}
+
+Algeria provides a second case with a qualitatively similar but dynamically different conflict. The Algerian Civil War ("Black Decade", 1991--2002) involved intense violence between government forces and Islamist insurgent groups. Estimated death tolls range widely from 44,000 to 200,000 depending on source, reflecting both the difficulty of attribution in civil conflicts and the political contestation of the numbers. This contestation illustrates precisely why a model-based estimate from all-cause data is valuable: it provides an independent check that does not depend on attribution or event databases.
+
+#### Visual decomposition
+
+```{r}
+#| label: fig-dz-decomposition
+#| fig-cap: "Four-panel decomposition for males aged 15--45 in Algeria. As @fig-ni-decomposition."
+#| fig-subcap:
+#|   - "Observed"
+#|   - "Full model (baseline + impulse-decay)"
+#|   - "Counterfactual (baseline only)"
+#|   - "Impulse-decay component"
+#| layout-ncol: 2
+#| eval: false
+
+# TODO: Four-panel decomposition for Algeria
+# Note: data source is external xlsx, not HMD
+```
+
+#### Parameter estimates and comparison with NI
+
+```{r}
+#| label: tbl-dz-params
+#| tbl-cap: "Estimated impulse-decay parameters for Algeria, with Northern Ireland for comparison"
+#| eval: false
+
+# TODO: Comparative parameter table
+# Expected: Algeria onset ~1994, faster decay (k ~0.198), shorter half-life (~3.1 yr)
+```
+
+The faster decay in Algeria compared with Northern Ireland is substantively meaningful. It suggests a more acute conflict phase that burned out faster, compared with the entrenched, self-sustaining tit-for-tat dynamics in Northern Ireland.
+
+#### Cumulative excess deaths
+
+```{r}
+#| label: fig-dz-cumulative
+#| fig-cap: "Cumulative estimated excess male deaths (ages 15--45) attributable to the Algerian Civil War, with 95% credible interval. Shaded region indicates the range of independent estimates (44,000--200,000 for all ages and sexes)."
+#| eval: false
+
+# TODO: Cumulative curve for Algeria
+# Note: independent estimates cover all ages/sexes; our estimate is males 15-45 only
+```
+
+---
+
+### Systematic scan {#sec-results-scan}
+
+The impulse-decay model is fitted to all HMD countries with at least 50 years of continuous data. For each country, the improvement in predictive performance from adding the impulse-decay component ($\mathcal{M}_1$ vs $\mathcal{M}_0$) is computed.
+
+#### Detection ranking
+
+```{r}
+#| label: fig-scan-ranking
+#| fig-cap: "Strength of evidence for an impulse-decay signature across all HMD countries. Countries above the dashed line show substantial evidence for a conflict-attributable mortality signature. Known conflict-affected populations are highlighted."
+#| eval: false
+
+# TODO: Ranked bar chart or forest plot
+# x: WAIC difference (M1 vs M0)
+# y: country
+# Highlight: NI, Algeria (positive controls); Sweden, Switzerland (negative controls)
+```
+
+#### Decay rate comparison
+
+```{r}
+#| label: fig-halflife-comparison
+#| fig-cap: "Estimated conflict half-lives for detected populations, with 95% credible intervals. Longer half-lives indicate more persistent, entrenched conflict dynamics."
+#| eval: false
+
+# TODO: Dot-and-whisker plot of half-lives
+# Ordered by half-life
+# NI and Algeria labelled
+```
+
+---
+
+### Summary of estimates {#sec-results-summary}
+
+@tbl-headline presents the paper's principal output: cumulative excess mortality estimates for each detected conflict, derived from all-cause mortality data alone.
+
+```{r}
+#| label: tbl-headline
+#| tbl-cap: "Estimated conflict-attributable excess mortality from all-cause data. Northern Ireland validated against independent tallies; other estimates are novel."
+#| eval: false
+
+# TODO: The headline table
+# Columns: Country | Conflict | Onset (95% CI) | Half-life (95% CI) |
+#          Cumulative excess deaths (95% CI) | Independent tally | Ratio
+# NI row serves as calibration; other rows are the paper's novel contribution
 ```

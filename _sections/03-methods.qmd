@@ -1,60 +1,73 @@
-<!-- Methods section -->
-<!-- Core methodology: -->
-<!-- 1. HMD data: all-cause mortality by age, year, sex for NI (GBR_NIR) -->
-<!-- 2. Lexis surface visualisation (level plots) -->
-<!-- 3. Impulse-decay model for Troubles parameter T(t) -->
-<!-- 4. Three-phase mortality improvement model (pre-1938, 1939-1955, post-1955) -->
-<!-- 5. Decay rate optimisation via AIC/BIC -->
-<!-- 6. Counterfactual excess deaths estimation -->
+### Mortality surfaces as smooth spatial objects
+
+A Lexis surface — the matrix of mortality rates indexed by age and calendar year — can be understood as a spatial object in which nearby cells are expected to have similar values. @girosiking2008 formalised this insight in their Bayesian approach to mortality forecasting, using smoothing priors that encode the expectation that mortality at age $a$ in year $t$ should be predictable from neighbouring age-year cells. This spatial smoothness reflects the underlying biology of ageing and the gradual nature of secular mortality improvement: cohort effects, period effects, and age effects all tend to vary slowly across the surface.
+
+The smoothness prior is not merely a technical convenience. It embodies a substantive claim about what "normal" mortality looks like: a surface without sharp discontinuities, in which change is gradual along both the age and period dimensions. Departures from smoothness therefore carry information. Some departures are well-understood (the infant mortality trough, the young-adult male accident hump, pandemic spikes). Others may signal less-recognised disruptions.
+
+### Conflict as structured departure from smoothness
+
+We argue that intense civil conflicts produce a characteristic departure from mortality surface smoothness: a feature that is (i) localised in age (predominantly young adult males), (ii) sharp in onset, (iii) gradual in decay, and (iv) absent in the corresponding female surface. This "impulse-decay" signature is too abrupt for a smooth prior to absorb, yet too structured to dismiss as noise. It sits between the smooth baseline and random variation — a parametric anomaly with a specific, interpretable shape.
+
+The key methodological claim of this paper is that this signature can be detected and quantified using only all-cause mortality data disaggregated by age, sex, and year. No cause-of-death coding, conflict event databases, or retrospective surveys are required. The parametric model does the work of separating the conflict signal from background mortality trends.
 
 ### Data
 
-All-cause mortality counts and population exposure estimates, disaggregated by sex and single year of age and period, were obtained from the Human Mortality Database [@hmd2024] for Northern Ireland (`GBR_NIR`). Comparator populations include Scotland (`GBR_SCO`), England and Wales (`GBRTENW`), the Republic of Ireland (`IRL`), and a composite of Western European nations.
+All-cause mortality counts and population exposure estimates, disaggregated by sex and single year of age and period, were obtained from the Human Mortality Database [@hmd2024] for all available countries. The primary case study is Northern Ireland (`GBR_NIR`, 1922--2023). Additional case studies include Algeria (mortality surface data from national actuarial sources) and a systematic scan of all HMD countries.
 
-All data management and analyses were performed using R [@rcoreteam2024]. Code to reproduce all analyses is available at <https://github.com/JonMinton/shape-of-the-troubles>.
-
-### Visual exploration
-
-Mortality rates were calculated by dividing death counts by population exposure. These rates were then visualised as Lexis surfaces — heatmaps in which each column represents a year, each row an age, and cell colour indicates the log~10~ mortality rate [@minton2014; @vaupel1997].
-
-### The initiation-decay model
-
-```{r}
-#| label: fig-impulse-decay-schematic
-#| fig-cap: "Schematic of the impulse-decay model for conflict intensity"
-#| eval: false
-
-# TODO: Generate schematic of T(t) parameter
-```
-
-The Troubles parameter $T(t)$ operationalises the hypothesis that conflict followed a single impulse-decay pattern, with events prior to 1972 leading to a tipping point, after which sectarian violence was sustained through tit-for-tat reprisals but gradually attenuated.
-
-Formally:
-
-$$
-T(t) = \begin{cases} 0 & \text{if } t < 1972 \\ (1-k)^{t-1972} & \text{if } t \geq 1972 \end{cases}
-$$
-
-where $k$ is the annual decay rate. The half-life of conflict intensity is $h = \ln(0.5) / \ln(1-k)$.
+All analyses were performed using R [@rcoreteam2024]. Code to reproduce all analyses is available at <https://github.com/JonMinton/shape-of-the-troubles>.
 
 ### Model specification
 
-The full model for log~10~ mortality rate in males aged 15--45 is:
+The model has two components: a smooth baseline and a structured conflict term.
 
-$$
-\log_{10}(\mu_{a,t}) = f(a) + g^{(p)}(a, t) + \beta_a \cdot T(t) + \epsilon_{a,t}
-$$
+**Smooth baseline.** Following @girosiking2008, the baseline mortality surface is modelled as a smooth function of age and year. In practice, we use a tensor-product smooth over the age-year plane:
 
-where $f(a)$ captures age-specific baseline mortality, $g^{(p)}(a, t)$ captures age-specific mortality improvement within phase $p$, and $\beta_a \cdot T(t)$ captures the age-specific effect of the Troubles.
+$$\log_{10}(\mu_{a,t}^{\text{baseline}}) = f(a, t) + \epsilon_{a,t}$$
 
-Three mortality improvement phases were identified through visual exploration:
+where $f(a, t)$ is a smooth bivariate function estimated via penalised regression splines (thin-plate or tensor-product basis), and $\epsilon_{a,t}$ is residual variation. The smoothing penalty is selected by restricted maximum likelihood (REML) or via cross-validation.
 
-- **Phase 1** (1922--1938): Pre-war baseline
-- **Phase 2** (1939--1955): Rapid improvement (despite including WWII)
-- **Phase 3** (1956 onwards): Continued but slower improvement
+**Impulse-decay conflict component.** The conflict term models a structured departure from the smooth baseline. For a conflict with onset at time $t_0$ and decay rate $k$:
 
-The decay rate $k$ was selected to minimise AIC through numerical optimisation.
+$$T(t; t_0, k, \lambda) = \begin{cases} 0 & \text{if } t < t_0 - \delta \\ \sigma(t; t_0, \lambda) \cdot (1-k)^{(t - t_0)} & \text{if } t \geq t_0 - \delta \end{cases}$$
 
-### Counterfactual estimation
+where $\sigma(t; t_0, \lambda) = [1 + e^{-\lambda(t - t_0)}]^{-1}$ is a logistic onset function. When $\lambda$ is large, onset is effectively instantaneous (a step function); smaller values allow a gradual ramp-up. The half-life of the conflict's mortality effect is $h = \ln(0.5) / \ln(1-k)$.
 
-Excess deaths attributable to the Troubles were estimated by comparing predicted deaths under the fitted model with predictions from a counterfactual model in which $T(t) = 0$ for all years.
+The conflict effect is allowed to vary by age:
+
+$$\log_{10}(\mu_{a,t}) = f(a, t) + \beta_a \cdot T(t; t_0, k, \lambda) + \epsilon_{a,t}$$
+
+where $\beta_a$ captures the age-specific magnitude of excess mortality attributable to the conflict. The model is fitted to males and females separately; in sectarian conflicts the signature is expected to appear predominantly in males.
+
+**Full model.** The complete model combines the smooth baseline with zero or more impulse-decay components. For a systematic scan, we compare:
+
+- $\mathcal{M}_0$: smooth baseline only (no conflict term)
+- $\mathcal{M}_1$: smooth baseline + one impulse-decay component
+
+with the conflict parameters $(t_0, k, \lambda)$ estimated from the data rather than fixed by domain knowledge.
+
+### Estimation
+
+**Bayesian framework.** We adopt a Bayesian approach for joint estimation and model comparison. Priors:
+
+- $t_0 \sim \text{Uniform}(\text{min year}, \text{max year})$ — onset year, uninformative over the observation period
+- $k \sim \text{Beta}(2, 5)$ — decay rate, weakly informative prior favouring slower decay (half-life > 3 years), reflecting the expectation that civil conflicts have lasting effects
+- $\lambda \sim \text{Exponential}(0.5)$ — onset sharpness, allowing both gradual and abrupt initiation
+- $\beta_a \sim \text{Normal}(0, \sigma_\beta)$ with $\sigma_\beta \sim \text{Half-Cauchy}(0, 1)$ — age-specific conflict effects, hierarchically shrunk
+
+Model comparison uses the Widely Applicable Information Criterion (WAIC) or leave-one-out cross-validation (LOO-CV) to assess whether adding the impulse-decay component improves predictive performance beyond the smooth baseline. For the systematic scan, this provides a principled detection criterion: countries where $\mathcal{M}_1$ substantially outperforms $\mathcal{M}_0$ are flagged as containing a conflict-attributable mortality signature.
+
+Posterior distributions on $(t_0, k)$ provide uncertainty-quantified estimates of when a conflict began and how quickly its mortality effects decayed — without requiring prior knowledge of conflict chronology.
+
+**Implementation.** The model is implemented in Stan via the `brms` package in R, with Gaussian process or spline-based smooth terms for the baseline surface. Posterior sampling uses Hamiltonian Monte Carlo (HMC) with the No-U-Turn Sampler (NUTS).
+
+### Counterfactual excess deaths
+
+Excess deaths attributable to the conflict are estimated by comparing predicted mortality under the fitted model against a counterfactual in which $T(t) = 0$ for all $t$:
+
+$$\hat{D}_{\text{excess}} = \sum_{a,t} E_{a,t} \left[ 10^{\hat{\mu}_{a,t}} - 10^{\hat{\mu}_{a,t}^{\text{counter}}} \right]$$
+
+where $E_{a,t}$ is population exposure. Posterior samples of $(t_0, k, \beta_a)$ propagate uncertainty from the model parameters through to the excess death estimates, yielding credible intervals rather than point estimates.
+
+### Systematic scan
+
+The model is fitted to every HMD country with sufficient data coverage (at least 50 years of continuous age-sex-year mortality data). For each country, the difference in predictive performance between $\mathcal{M}_0$ and $\mathcal{M}_1$ is computed. Countries are ranked by the strength of evidence for an impulse-decay signature. Known conflict-affected populations (Northern Ireland, Algeria) serve as positive controls; stable populations (e.g., Sweden, Switzerland) serve as negative controls. This scan tests whether the impulse-decay model detects conflict signatures where expected and does not falsely detect them where no conflict occurred.

@@ -1,5 +1,5 @@
 ---
-title: "The Shape of the Troubles: Visualising and Quantifying Conflict-Attributable Excess Deaths in Young Adult Males in Northern Ireland"
+title: "The Shape of Conflict: Detecting and Quantifying Impulse-Decay Mortality Signatures in Civil Conflicts Using All-Cause Mortality Surfaces"
 author:
   - name: Jonathan Minton
     orcid: 0000-0003-1207-6259
@@ -7,23 +7,31 @@ author:
     corresponding: true
 date: last-modified
 abstract: |
-  This paper argues that an understanding of the human cost of the Troubles in
-  Northern Ireland is vital for contemporary policy. This human cost is manifest
-  in all-cause mortality records, which are explored visually using Lexis surface
-  plots. A model is developed which formalises a key intuition from the data: excess
-  deaths in young adult males are represented by a component with peak intensity in
-  1972, which then gradually decays over many decades. We call this an
-  initiation-decay model, and based on it estimate the Troubles to have cost nearly
-  3,000 lives in males aged 15--45 alone, with an intensity half-life of nearly
-  seven years. We argue that the conditions which led to this earlier wave of death
-  and instability may still be latent in Northern Irish society.
+  Conflict demography faces a data paradox: the populations most affected by civil
+  conflict tend to have the weakest mortality data. We propose a method for detecting
+  and quantifying conflict-attributable excess mortality using only all-cause mortality
+  data by age, sex, and year. Building on the insight that mortality surfaces are
+  fundamentally smooth spatial objects, we develop a Bayesian framework that identifies
+  structured departures from smoothness consistent with an impulse-decay conflict
+  process --- a sharp onset of excess mortality in young adult males followed by
+  exponential decay over years or decades. The model jointly estimates onset timing,
+  decay rate, and age-specific magnitude, with uncertainty propagated to excess death
+  estimates. Applied to Northern Ireland (the Troubles, half-life ~7 years) and Algeria
+  (the Black Decade, half-life ~3 years), the model captures 75% of independently
+  tallied conflict deaths from all-cause data alone. A systematic scan of all Human
+  Mortality Database countries tests the method's specificity and sensitivity. The
+  decay rate characterises conflict dynamics: longer half-lives suggest entrenched
+  tit-for-tat processes; shorter half-lives suggest more acute phases. This
+  lightweight approach extends conflict mortality estimation to settings where
+  detailed cause-of-death data are unavailable.
 keywords:
-  - Northern Ireland
-  - Mortality
-  - Troubles
-  - Data Visualisation
-  - Lexis surface
   - Conflict demography
+  - Mortality surfaces
+  - Lexis surface
+  - Bayesian model comparison
+  - Impulse-decay model
+  - Northern Ireland
+  - Civil conflict
 ---
 
 ```{r}

@@ -70,7 +70,7 @@ with the conflict parameters $(t_0, k, \lambda)$ estimated from the data rather 
 - $\lambda \sim \text{Exponential}(0.5)$ — onset sharpness, allowing both gradual and abrupt initiation
 - $\beta_a \sim \text{Normal}(0, \sigma_\beta)$ with $\sigma_\beta \sim \text{Half-Cauchy}(0, 1)$ — age-specific conflict effects, hierarchically shrunk
 
-Model comparison uses the Widely Applicable Information Criterion (WAIC) or leave-one-out cross-validation (LOO-CV) to assess whether adding the impulse-decay component improves predictive performance beyond the smooth baseline. For the systematic scan, this provides a principled detection criterion: countries where $\mathcal{M}_1$ substantially outperforms $\mathcal{M}_0$ are flagged as containing a conflict-attributable mortality signature.
+Model comparison uses leave-one-out cross-validation (LOO-CV), approximated via Pareto-smoothed importance sampling (PSIS-LOO), to assess whether adding the impulse-decay component improves predictive performance beyond the smooth baseline. The expected log pointwise predictive density (ELPD) difference between $\mathcal{M}_1$ and $\mathcal{M}_0$, together with its standard error, provides a principled detection criterion. A difference exceeding twice its standard error indicates meaningful improvement; the Pareto-$k$ diagnostic flags observations where the approximation is unreliable.
 
 Posterior distributions on $(t_0, k)$ provide uncertainty-quantified estimates of when a conflict began and how quickly its mortality effects decayed — without requiring prior knowledge of conflict chronology.
 
@@ -84,6 +84,22 @@ $$\hat{D}_{\text{excess}} = \sum_{a,t} E_{a,t} \left[ 10^{\hat{\mu}_{a,t}} - 10^
 
 where $E_{a,t}$ is population exposure. Posterior samples of $(t_0, k, \beta_a)$ propagate uncertainty from the model parameters through to the excess death estimates, yielding credible intervals rather than point estimates.
 
-### Systematic scan
+### Systematic scan and detection protocol
 
-The model is fitted to every HMD country with sufficient data coverage (at least 50 years of continuous age-sex-year mortality data). For each country, the difference in predictive performance between $\mathcal{M}_0$ and $\mathcal{M}_1$ is computed. Countries are ranked by the strength of evidence for an impulse-decay signature. Known conflict-affected populations (Northern Ireland, Algeria) serve as positive controls; stable populations (e.g., Sweden, Switzerland) serve as negative controls. This scan tests whether the impulse-decay model detects conflict signatures where expected and does not falsely detect them where no conflict occurred.
+The model is fitted to every HMD country with sufficient data coverage (at least 50 years of continuous age-sex-year mortality data). For each country, a four-step detection protocol is applied:
+
+**Step 1: Detection.** Compare $\mathcal{M}_1$ vs $\mathcal{M}_0$ for males using LOO-CV. Countries where the impulse-decay component substantially improves predictive performance ($\Delta\text{ELPD} > 2 \times \text{SE}$) proceed to step 2. The hierarchical prior on $\beta_a$ provides intrinsic protection against overfitting: in populations without a conflict signature, the posterior for $\sigma_\beta$ collapses toward zero, effectively switching the component off and yielding no improvement over the smooth baseline.
+
+**Step 2: Sex comparison.** Fit $\mathcal{M}_1$ to the female mortality surface for the same country, using the male-estimated onset year $t_0$. The ratio of male to female impulse sizes characterises the nature of the disruption detected. This ratio is informative, not dispositive. Consider the contrast between combatant-dominated conflicts and total wars: American involvement in the World Wars produced a strongly male-localised, age-specific signature because the civilian population was not directly exposed to combat; French mortality in the same conflicts was affected in both sexes — bombardment, occupation, and resistance exposed women to mortality risks absent in countries whose territory was not a theatre of war. A high male-to-female ratio suggests combatant or sectarian violence; a moderate ratio suggests significant civilian exposure; a near-equal ratio suggests either total war, genocide, or a non-conflict disruption (pandemic, famine, economic crisis). The ratio thus helps classify the type of event detected, rather than simply filtering detections.
+
+**Step 3: Age localisation.** Examine the posterior distribution of $\beta_a$. Sectarian and civil conflicts are expected to produce effects concentrated in young adult ages (roughly 15--35), with the peak at the youngest adult ages. A uniform effect across all ages is more consistent with a period shock (pandemic, famine) than a conflict. A concentration at older ages may indicate an economic or healthcare disruption rather than violence.
+
+**Step 4: Shape adequacy.** Examine residuals from $\mathcal{M}_1$. If large structured residuals remain after fitting the impulse-decay component — for instance, a sharp spike inconsistent with the smooth exponential decay — the parametric form may be inadequate for this disruption. This flags events with dynamics different from the impulse-decay model (e.g., pandemic spikes with rapid offset, or conflicts with multiple distinct initiation events).
+
+Countries are classified according to the pattern of results across these steps:
+
+- **Conflict signature detected:** Steps 1 and 3 positive, predominantly male (step 2), residuals clean (step 4). The headline table reports parameter estimates and excess mortality.
+- **Disruption detected, type uncertain:** Step 1 positive but steps 2--4 indicate a pattern inconsistent with sectarian conflict (e.g., both-sex, all-age, or poor shape fit). Reported separately as potential wars, pandemics, or economic crises.
+- **No disruption detected:** Step 1 negative. The smooth baseline is sufficient. Stable populations (e.g., Sweden, Switzerland) should fall here, serving as negative controls.
+
+Known conflict-affected populations (Northern Ireland, Algeria) serve as positive controls; known total wars (France in WWI/WWII) provide calibration for the sex-ratio diagnostic.

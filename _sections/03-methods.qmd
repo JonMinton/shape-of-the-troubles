@@ -54,6 +54,79 @@ $$\log_{10}(\mu_{a,t}) = f(a, t) + \beta_a \cdot T(t; t_0, k, \lambda) + \epsilo
 
 where $\beta_a$ captures the age-specific magnitude of excess mortality attributable to the conflict. The model is fitted to males and females separately; in sectarian conflicts the signature is expected to appear predominantly in males.
 
+@fig-impulse-decay-shapes illustrates how the three parameters --- onset sharpness ($\lambda$), decay rate ($k$), and onset time ($t_0$) --- control the shape of the impulse-decay function.
+
+```{r}
+#| label: fig-impulse-decay-shapes
+#| fig-cap: "Impulse-decay functions $T(t)$ for varying parameter combinations. Left: effect of onset sharpness $\\lambda$ (abrupt vs gradual initiation) with fixed $k = 0.10$. Centre: effect of decay rate $k$, corresponding to half-lives of ~3, 7, and 14 years. Right: effect of onset time $t_0$, showing how the same dynamics can be shifted in time."
+#| fig-width: 10
+#| fig-height: 3.5
+
+impulse_decay <- function(t, t0, k, lambda) {
+  sigma <- 1 / (1 + exp(-lambda * (t - t0)))
+  decay <- ifelse(t >= t0, (1 - k)^(t - t0), 0)
+  sigma * decay
+}
+
+years <- seq(1960, 2020, by = 0.5)
+
+# Panel 1: varying lambda (onset sharpness)
+p1_data <- bind_rows(
+  tibble(t = years, y = impulse_decay(years, 1972, 0.10, 0.5),
+         param = "λ = 0.5 (gradual)"),
+  tibble(t = years, y = impulse_decay(years, 1972, 0.10, 2),
+         param = "λ = 2 (moderate)"),
+  tibble(t = years, y = impulse_decay(years, 1972, 0.10, 10),
+         param = "λ = 10 (abrupt)")
+)
+
+p1 <- ggplot(p1_data, aes(x = t, y = y, colour = param)) +
+  geom_line(linewidth = 0.8) +
+  labs(x = "Year", y = "T(t)", title = "Onset sharpness (λ)",
+       colour = NULL) +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "bottom", legend.direction = "vertical") +
+  scale_colour_brewer(palette = "Set1")
+
+# Panel 2: varying k (decay rate / half-life)
+p2_data <- bind_rows(
+  tibble(t = years, y = impulse_decay(years, 1972, 0.20, 10),
+         param = "k = 0.20 (h ≈ 3.1 yr)"),
+  tibble(t = years, y = impulse_decay(years, 1972, 0.097, 10),
+         param = "k = 0.10 (h ≈ 6.9 yr)"),
+  tibble(t = years, y = impulse_decay(years, 1972, 0.05, 10),
+         param = "k = 0.05 (h ≈ 13.5 yr)")
+)
+
+p2 <- ggplot(p2_data, aes(x = t, y = y, colour = param)) +
+  geom_line(linewidth = 0.8) +
+  labs(x = "Year", y = "T(t)", title = "Decay rate (k) / half-life",
+       colour = NULL) +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "bottom", legend.direction = "vertical") +
+  scale_colour_brewer(palette = "Set2")
+
+# Panel 3: varying t0 (onset time)
+p3_data <- bind_rows(
+  tibble(t = years, y = impulse_decay(years, 1965, 0.10, 10),
+         param = "t₀ = 1965"),
+  tibble(t = years, y = impulse_decay(years, 1972, 0.10, 10),
+         param = "t₀ = 1972"),
+  tibble(t = years, y = impulse_decay(years, 1980, 0.10, 10),
+         param = "t₀ = 1980")
+)
+
+p3 <- ggplot(p3_data, aes(x = t, y = y, colour = param)) +
+  geom_line(linewidth = 0.8) +
+  labs(x = "Year", y = "T(t)", title = "Onset time (t₀)",
+       colour = NULL) +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "bottom", legend.direction = "vertical") +
+  scale_colour_brewer(palette = "Dark2")
+
+p1 + p2 + p3
+```
+
 **Full model.** The complete model combines the smooth baseline with zero or more impulse-decay components. For a systematic scan, we compare:
 
 - $\mathcal{M}_0$: smooth baseline only (no conflict term)

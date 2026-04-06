@@ -20,3 +20,5 @@ Thumbs.db
 # Credentials
 .env
 .Renviron
+
+/.quarto/

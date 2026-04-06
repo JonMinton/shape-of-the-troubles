@@ -2,10 +2,10 @@
 # All packages loaded here for reproducibility
 
 library(tidyverse)
-library(lattice)
-library(latticeExtra)
 library(RColorBrewer)
 library(broom)
 library(modelr)
+library(scales)
 library(knitr)
 library(kableExtra)
+library(patchwork)

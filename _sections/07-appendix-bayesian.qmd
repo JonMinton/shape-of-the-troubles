@@ -1,0 +1,165 @@
+## Appendix B: Bayesian estimation via rstanarm {#sec-appendix-bayesian .appendix}
+
+This appendix presents Bayesian estimates of the impulse-decay model for all HMD populations, providing posterior credible intervals for the conflict effect parameters. Models are fitted using `rstanarm::stan_glm` [@rstanarm2024], which uses pre-compiled Stan code with Hamiltonian Monte Carlo (NUTS) sampling.
+
+The Bayesian model uses a simplified parameterisation with continuous age effects (quadratic) rather than age-as-factor, enabling efficient estimation:
+
+$$\text{lmr}_{a,t} = \beta_0 + \beta_1 a' + \beta_2 a'^2 + \beta_3 t' + \beta_4 t'^2 + (\gamma_0 + \gamma_1 a' + \gamma_2 a'^2) \cdot I(t) + \varepsilon_{a,t}$$
+
+where $a' = a - \bar{a}$ (centred age), $t' = t - 1970$ (centred year), and $I(t)$ is the impulse-decay term at the data-driven optimal onset year. Default weakly informative priors are used throughout.
+
+The key quantity of interest is $P(\gamma_0 > 0)$: the posterior probability that the impulse-decay term captures positive excess mortality. Values near 1 indicate strong evidence of a mortality disruption at the identified onset; values near 0.5 indicate no evidence.
+
+```{r}
+#| label: bayesian-setup
+#| include: false
+
+library(rstanarm)
+options(mc.cores = parallel::detectCores())
+
+# Fit Bayesian model for each country
+bayes_results <- map_dfr(all_fits, function(fit) {
+  country_data <- hmd |> filter(country_code == fit$code, !is.na(year))
+  onset <- fit$best_onset
+
+  fit_bayes_sex <- function(sex_val) {
+    sex_data <- country_data |>
+      filter(sex == sex_val, !is.na(deaths), !is.na(exposure),
+             age >= AGE_MIN, age <= AGE_MAX) |>
+      mutate(
+        lmr = calc_lmr(deaths, exposure),
+        age_c = age - mean(age),
+        age_c2 = (age - mean(age))^2,
+        yr_c = year - 1970,
+        impulse = ifelse(year < onset, 0,
+                         (1 - OPTIMAL_DECAY_K) ^ (year - onset))
+      )
+
+    if (nrow(sex_data) < 200) return(NULL)
+
+    mod <- tryCatch(
+      stan_glm(
+        lmr ~ age_c + age_c2 + yr_c + I(yr_c^2) + impulse +
+               age_c:impulse + age_c2:impulse,
+        data = sex_data,
+        chains = 4, iter = 2000, seed = 42, refresh = 0
+      ),
+      error = function(e) NULL
+    )
+
+    if (is.null(mod)) return(NULL)
+
+    draws <- as.data.frame(mod)
+    impulse_draws <- draws[["impulse"]]
+
+    tibble(
+      median = median(impulse_draws),
+      lower = quantile(impulse_draws, 0.025),
+      upper = quantile(impulse_draws, 0.975),
+      p_positive = mean(impulse_draws > 0)
+    )
+  }
+
+  male_res <- fit_bayes_sex("male")
+  female_res <- fit_bayes_sex("female")
+
+  if (is.null(male_res)) return(NULL)
+
+  tibble(
+    code = fit$code,
+    name = fit$name,
+    region = fit$region,
+    onset = onset,
+    # Male
+    m_median = male_res$median,
+    m_lower = male_res$lower,
+    m_upper = male_res$upper,
+    m_p_pos = male_res$p_positive,
+    # Female
+    f_median = if (!is.null(female_res)) female_res$median else NA_real_,
+    f_lower = if (!is.null(female_res)) female_res$lower else NA_real_,
+    f_upper = if (!is.null(female_res)) female_res$upper else NA_real_,
+    f_p_pos = if (!is.null(female_res)) female_res$p_positive else NA_real_,
+    # OLS comparison
+    aic_improvement = fit$aic_improvement
+  )
+})
+```
+
+### Bayesian summary table
+
+```{r}
+#| label: tbl-bayesian-summary
+#| tbl-cap: "Bayesian impulse-decay estimates for all HMD populations. Posterior median and 95% credible interval for the impulse coefficient (males), posterior probability of positive excess mortality P(γ₀ > 0), and the corresponding female estimate. Ranked by male posterior probability."
+
+bayes_results |>
+  arrange(desc(m_p_pos)) |>
+  transmute(
+    Country = name,
+    Region = region,
+    Onset = as.character(onset),
+    `Male γ₀ [95% CI]` = sprintf("%.3f [%.3f, %.3f]", m_median, m_lower, m_upper),
+    `P(γ₀>0) male` = sprintf("%.3f", m_p_pos),
+    `Female γ₀ [95% CI]` = ifelse(!is.na(f_median),
+      sprintf("%.3f [%.3f, %.3f]", f_median, f_lower, f_upper), "—"),
+    `P(γ₀>0) female` = ifelse(!is.na(f_p_pos), sprintf("%.3f", f_p_pos), "—"),
+    `AIC impr.` = sprintf("%.0f", aic_improvement)
+  ) |>
+  knitr::kable()
+```
+
+### Forest plot of Bayesian estimates
+
+@fig-bayesian-forest shows the posterior median and 95% credible interval for the impulse coefficient for males (blue) and females (red) across all populations, ranked by male posterior probability.
+
+```{r}
+#| label: fig-bayesian-forest
+#| fig-cap: "Bayesian impulse-decay coefficient estimates (posterior median and 95% CI) for all HMD populations. Blue = male, red = female. Populations ordered by male posterior probability of positive excess mortality. Vertical dashed line at zero."
+#| fig-width: 10
+#| fig-height: 14
+
+forest_data <- bayes_results |>
+  arrange(m_p_pos) |>
+  mutate(country_f = factor(name, levels = name))
+
+male_forest <- forest_data |>
+  select(country_f, median = m_median, lower = m_lower, upper = m_upper) |>
+  mutate(sex = "Male")
+
+female_forest <- forest_data |>
+  filter(!is.na(f_median)) |>
+  select(country_f, median = f_median, lower = f_lower, upper = f_upper) |>
+  mutate(sex = "Female")
+
+bind_rows(male_forest, female_forest) |>
+  ggplot(aes(x = median, y = country_f, colour = sex)) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
+  geom_pointrange(aes(xmin = lower, xmax = upper),
+                  position = position_dodge(width = 0.5),
+                  size = 0.3, linewidth = 0.4) +
+  scale_colour_manual(values = c("Male" = "steelblue", "Female" = "coral")) +
+  labs(x = "Impulse-decay coefficient (posterior median + 95% CI)",
+       y = NULL, colour = "Sex") +
+  theme_minimal(base_size = 10) +
+  theme(axis.text.y = element_text(size = 8))
+```
+
+### Classification by posterior evidence
+
+```{r}
+#| label: tbl-bayesian-classification
+#| tbl-cap: "Classification of HMD populations by Bayesian posterior evidence. 'Strong positive' = P(γ₀>0) > 0.95 for males; 'Strong negative' = P(γ₀>0) < 0.05; 'Inconclusive' otherwise."
+
+bayes_results |>
+  mutate(
+    classification = case_when(
+      m_p_pos > 0.95 & !is.na(f_p_pos) & f_p_pos < 0.5 ~ "Male-specific disruption",
+      m_p_pos > 0.95 & !is.na(f_p_pos) & f_p_pos > 0.95 ~ "Both-sex disruption",
+      m_p_pos > 0.95 ~ "General positive disruption",
+      m_p_pos < 0.05 ~ "Negative (improving mortality)",
+      TRUE ~ "Inconclusive"
+    )
+  ) |>
+  count(classification) |>
+  knitr::kable()
+```

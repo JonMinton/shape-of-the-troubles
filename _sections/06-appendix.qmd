@@ -1,0 +1,307 @@
+## Appendix A: Detailed results for all HMD populations {#sec-appendix-all .appendix}
+
+This appendix presents the impulse-decay model results for all `r length(ALL_HMD_CODES)` populations in the Human Mortality Database. For each population, four panels are shown:
+
+1. **Raw death counts** by sex (ages `r AGE_MIN`--`r AGE_MAX`) with a vertical dashed line at the NI-calibrated onset year (1972)
+2. **Impulse-decay coefficient by age** for males and females
+3. **Residual surface** for the male model
+4. **Summary statistics** including AIC improvement, RMSE reduction, peak age, and male/female impulse ratio
+
+Populations are grouped by region and ordered by detection strength (AIC improvement). The simplified baseline (quadratic year trend) is used for all populations to ensure comparability.
+
+```{r}
+#| label: appendix-setup
+#| include: false
+
+# Country metadata for grouping and labelling
+country_meta <- tribble(
+  ~code, ~name, ~region,
+  "GBR_NIR", "Northern Ireland", "UK",
+  "GBR_NP", "United Kingdom", "UK",
+  "GBR_SCO", "Scotland", "UK",
+  "GBRCENW", "England & Wales (civilian)", "UK",
+  "GBRTENW", "England & Wales (total)", "UK",
+  "AUT", "Austria", "Western Europe",
+  "BEL", "Belgium", "Western Europe",
+  "CHE", "Switzerland", "Western Europe",
+  "DEUTNP", "Germany (unified)", "Western Europe",
+  "DEUTE", "East Germany", "Western Europe",
+  "DEUTW", "West Germany", "Western Europe",
+  "FRATNP", "France (total)", "Western Europe",
+  "FRACNP", "France (civilian)", "Western Europe",
+  "IRL", "Ireland", "Western Europe",
+  "LUX", "Luxembourg", "Western Europe",
+  "NLD", "Netherlands", "Western Europe",
+  "ESP", "Spain", "Southern Europe",
+  "GRC", "Greece", "Southern Europe",
+  "ITA", "Italy", "Southern Europe",
+  "PRT", "Portugal", "Southern Europe",
+  "DNK", "Denmark", "Scandinavia",
+  "FIN", "Finland", "Scandinavia",
+  "ISL", "Iceland", "Scandinavia",
+  "NOR", "Norway", "Scandinavia",
+  "SWE", "Sweden", "Scandinavia",
+  "BGR", "Bulgaria", "Central & Eastern Europe",
+  "CZE", "Czechia", "Central & Eastern Europe",
+  "HRV", "Croatia", "Central & Eastern Europe",
+  "HUN", "Hungary", "Central & Eastern Europe",
+  "POL", "Poland", "Central & Eastern Europe",
+  "SVK", "Slovakia", "Central & Eastern Europe",
+  "SVN", "Slovenia", "Central & Eastern Europe",
+  "EST", "Estonia", "Baltic States",
+  "LTU", "Lithuania", "Baltic States",
+  "LVA", "Latvia", "Baltic States",
+  "BLR", "Belarus", "Former Soviet Union",
+  "RUS", "Russia", "Former Soviet Union",
+  "UKR", "Ukraine", "Former Soviet Union",
+  "ISR", "Israel", "Middle East",
+  "CAN", "Canada", "Americas",
+  "CHL", "Chile", "Americas",
+  "USA", "United States", "Americas",
+  "AUS", "Australia", "Asia-Pacific",
+  "JPN", "Japan", "Asia-Pacific",
+  "KOR", "South Korea", "Asia-Pacific",
+  "NZL_MA", "New Zealand (Māori)", "Asia-Pacific",
+  "NZL_NM", "New Zealand (non-Māori)", "Asia-Pacific",
+  "NZL_NP", "New Zealand (total)", "Asia-Pacific",
+  "TWN", "Taiwan", "Asia-Pacific"
+)
+
+# Fit all populations with onset year scanning
+fit_all_populations <- function(hmd_data, country_meta,
+                                 k = OPTIMAL_DECAY_K,
+                                 age_range = c(AGE_MIN, AGE_MAX)) {
+
+  results <- map(country_meta$code, function(code) {
+    country_data <- hmd_data |> filter(country_code == code, !is.na(year))
+
+    # First: scan for optimal onset year using males
+    male_scan <- country_data |>
+      filter(sex == "male", !is.na(deaths), !is.na(exposure),
+             age >= age_range[1], age <= age_range[2]) |>
+      mutate(lmr = calc_lmr(deaths, exposure),
+             yr_centred = year - median(year))
+
+    if (nrow(male_scan) < 200) return(NULL)
+
+    yr_range <- range(male_scan$year)
+    onset_candidates <- seq(yr_range[1] + 5, yr_range[2] - 5)
+
+    onset_aics <- map_dfr(onset_candidates, function(t0) {
+      d <- male_scan |> mutate(impulse = ifelse(year < t0, 0, (1-k)^(year-t0)))
+      mod <- tryCatch(
+        lm(lmr ~ as.factor(age) * (yr_centred + I(yr_centred^2) + impulse), data = d),
+        error = function(e) NULL)
+      if (is.null(mod)) return(NULL)
+      tibble(onset = t0, aic = AIC(mod))
+    })
+
+    best_onset <- onset_aics |> slice_min(aic) |> pull(onset) |> first()
+    onset <- best_onset
+
+    fit_one_sex <- function(sex_val) {
+      sex_data <- country_data |>
+        filter(sex == sex_val, !is.na(deaths), !is.na(exposure),
+               age >= age_range[1], age <= age_range[2]) |>
+        mutate(
+          lmr = calc_lmr(deaths, exposure),
+          yr_centred = year - median(year),
+          impulse = ifelse(year < onset, 0, (1 - k) ^ (year - onset))
+        )
+
+      if (nrow(sex_data) < 200) return(NULL)
+
+      mod0 <- tryCatch(
+        lm(lmr ~ as.factor(age) * (yr_centred + I(yr_centred^2)),
+           data = sex_data),
+        error = function(e) NULL
+      )
+      mod1 <- tryCatch(
+        lm(lmr ~ as.factor(age) * (yr_centred + I(yr_centred^2) + impulse),
+           data = sex_data),
+        error = function(e) NULL
+      )
+
+      if (is.null(mod0) || is.null(mod1)) return(NULL)
+
+      preds <- sex_data |>
+        modelr::add_predictions(mod1, var = "pred_full")
+      counter <- sex_data |>
+        mutate(impulse = 0) |>
+        broom::augment(mod1, newdata = _) |>
+        select(year, age, pred_counter = .fitted)
+
+      decomp <- preds |>
+        left_join(counter, by = c("year", "age")) |>
+        mutate(impulse_decay = pred_full - pred_counter,
+               residual = pred_full - lmr)
+
+      coefs <- coef(mod1)
+      imp_coefs <- coefs[grep("impulse", names(coefs))]
+      base_imp <- imp_coefs[1]
+      inter_imp <- if (length(imp_coefs) > 1) imp_coefs[-1] else numeric(0)
+      age_effects <- c(base_imp, base_imp + inter_imp)
+      names(age_effects) <- age_range[1]:age_range[2]
+
+      list(mod0 = mod0, mod1 = mod1, decomp = decomp,
+           age_effects = age_effects, data = sex_data)
+    }
+
+    male <- fit_one_sex("male")
+    female <- fit_one_sex("female")
+
+    if (is.null(male)) return(NULL)
+
+    male_impulse <- mean(abs(male$age_effects))
+    female_impulse <- if (!is.null(female)) mean(abs(female$age_effects)) else NA_real_
+    mf_ratio <- if (!is.na(female_impulse) && female_impulse > 0) {
+      male_impulse / female_impulse
+    } else NA_real_
+
+    meta <- country_meta |> filter(code == !!code)
+
+    list(
+      code = code,
+      name = meta$name,
+      region = meta$region,
+      male = male,
+      female = female,
+      best_onset = best_onset,
+      onset_aics = onset_aics,
+      aic_improvement = AIC(male$mod0) - AIC(male$mod1),
+      rms_baseline = rms(residuals(male$mod0)),
+      rms_full = rms(residuals(male$mod1)),
+      rms_reduction = 1 - rms(residuals(male$mod1)) / rms(residuals(male$mod0)),
+      male_impulse = male_impulse,
+      female_impulse = female_impulse,
+      mf_ratio = mf_ratio,
+      peak_age = as.integer(names(which.max(abs(male$age_effects)))),
+      peak_effect = max(abs(male$age_effects)),
+      year_range = paste0(min(male$data$year), "--", max(male$data$year)),
+      n_years = n_distinct(male$data$year)
+    )
+  })
+
+  # Remove NULLs and sort by AIC improvement
+  results <- compact(results)
+  results[order(-sapply(results, \(x) x$aic_improvement))]
+}
+
+all_fits <- fit_all_populations(hmd, country_meta)
+```
+
+### Summary table
+
+@tbl-appendix-summary presents summary statistics for all populations, ranked by detection strength.
+
+```{r}
+#| label: tbl-appendix-summary
+#| tbl-cap: "Impulse-decay detection results for all HMD populations. Ranked by AIC improvement (detection strength). M/F ratio > 1 indicates predominantly male excess mortality."
+
+summary_tbl <- map_dfr(all_fits, function(x) {
+  tibble(
+    Country = x$name,
+    Region = x$region,
+    Years = x$year_range,
+    `Onset` = as.character(x$best_onset),
+    `AIC impr.` = sprintf("%.0f", x$aic_improvement),
+    `RMSE red.` = sprintf("%.1f%%", 100 * x$rms_reduction),
+    `Peak age` = as.character(x$peak_age),
+    `M impulse` = sprintf("%.3f", x$male_impulse),
+    `F impulse` = sprintf("%.3f", x$female_impulse),
+    `M/F ratio` = if (!is.na(x$mf_ratio)) sprintf("%.2f", x$mf_ratio) else "—"
+  )
+})
+
+knitr::kable(summary_tbl)
+```
+
+### Population-level detail
+
+```{r}
+#| label: appendix-all-populations
+#| results: asis
+#| fig-width: 10
+#| fig-height: 12
+#| warning: false
+
+for (fit in all_fits) {
+  cat("\n\n#### ", fit$name, " (", fit$code, ")\n\n", sep = "")
+  cat("**Region:** ", fit$region, " | ",
+      "**Years:** ", fit$year_range, " | ",
+      "**Optimal onset:** ", fit$best_onset, " | ",
+      "**AIC improvement:** ", sprintf("%.0f", fit$aic_improvement), " | ",
+      "**RMSE reduction:** ", sprintf("%.1f%%", 100 * fit$rms_reduction), " | ",
+      "**M/F ratio:** ",
+      if (!is.na(fit$mf_ratio)) sprintf("%.2f", fit$mf_ratio) else "—",
+      "\n\n", sep = "")
+
+  country_data <- hmd |> filter(country_code == fit$code, !is.na(year))
+
+  # Panel 1: Raw counts
+  p_raw <- country_data |>
+    filter(!is.na(deaths), age >= AGE_MIN, age <= AGE_MAX) |>
+    group_by(year, sex) |>
+    summarise(deaths = sum(deaths, na.rm = TRUE), .groups = "drop") |>
+    mutate(sex = str_to_title(sex)) |>
+    ggplot(aes(x = year, y = deaths, colour = sex)) +
+    geom_point(size = 0.8, alpha = 0.6) +
+    geom_line(linewidth = 0.3, alpha = 0.4) +
+    geom_vline(xintercept = 1972, linetype = "dashed", colour = "grey40") +
+    scale_colour_manual(values = c("Male" = "steelblue", "Female" = "coral")) +
+    labs(title = paste0("A: Raw deaths (ages ", AGE_MIN, "-", AGE_MAX, ")"),
+         x = "Year", y = "Deaths", colour = "Sex") +
+    theme_minimal(base_size = 10)
+
+  # Panel 2: Sex comparison of impulse coefficients
+  sex_effects <- tibble(
+    age = AGE_MIN:AGE_MAX,
+    effect = as.numeric(fit$male$age_effects),
+    sex = "Male"
+  )
+  if (!is.null(fit$female)) {
+    sex_effects <- bind_rows(sex_effects,
+      tibble(age = AGE_MIN:AGE_MAX,
+             effect = as.numeric(fit$female$age_effects),
+             sex = "Female"))
+  }
+
+  p_sex <- ggplot(sex_effects, aes(x = age, y = effect, colour = sex)) +
+    geom_point(size = 1.5) + geom_line(linewidth = 0.4) +
+    geom_hline(yintercept = 0, linetype = "dashed") +
+    scale_colour_manual(values = c("Male" = "steelblue", "Female" = "coral")) +
+    labs(title = "B: Impulse coefficient by age",
+         x = "Age", y = "Coefficient", colour = "Sex") +
+    theme_minimal(base_size = 10)
+
+  # Panel 3: Male Lexis residual surface
+  p_resid <- fit$male$decomp |>
+    ggplot(aes(x = year, y = age, fill = residual)) +
+    geom_tile() +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red",
+                         midpoint = 0, limits = c(-0.6, 0.6),
+                         oob = scales::squish, name = "Resid.") +
+    labs(title = "C: Residuals (male model)", x = "Year", y = "Age") +
+    theme_minimal(base_size = 10) + coord_fixed(ratio = 1)
+
+  # Panel 4: Impulse-decay component
+  p_impulse <- fit$male$decomp |>
+    ggplot(aes(x = year, y = age, fill = impulse_decay)) +
+    geom_tile() +
+    scale_fill_gradient2(low = "navyblue", mid = "white", high = "firebrick",
+                         midpoint = 0, name = "Δ log₁₀(m)") +
+    labs(title = "D: Impulse-decay component (male)", x = "Year", y = "Age") +
+    theme_minimal(base_size = 10) + coord_fixed(ratio = 1)
+
+  combined <- (p_raw + p_sex) / (p_resid + p_impulse) +
+    patchwork::plot_annotation(
+      title = paste0(fit$name, " (", fit$code, ")"),
+      subtitle = paste0("AIC improvement: ", sprintf("%.0f", fit$aic_improvement),
+                        " | M/F ratio: ",
+                        if (!is.na(fit$mf_ratio)) sprintf("%.2f", fit$mf_ratio) else "—")
+    )
+
+  print(combined)
+  cat("\n\n")
+}
+```

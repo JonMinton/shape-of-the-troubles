@@ -35,6 +35,33 @@ ni_decomp <- ni_male_preds |>
   mutate(impulse_decay = pred_full - pred_counter)
 ```
 
+#### Raw death counts by sex
+
+Before any modelling, the conflict signature is visible in raw data. @fig-ni-raw-counts shows total deaths for males and females aged `r AGE_MIN`--`r AGE_MAX` in Northern Ireland. The post-1972 divergence — a sustained uptick in male deaths with no corresponding female increase — is the pattern the impulse-decay model formalises.
+
+```{r}
+#| label: fig-ni-raw-counts
+#| fig-cap: "Total deaths by sex for ages 15--45 in Northern Ireland, 1922--2023. The vertical dashed line marks 1972 (onset of the Troubles). Male deaths rise sharply after 1972 and remain elevated for decades; female deaths show no corresponding increase."
+#| fig-width: 8
+#| fig-height: 5
+
+ni |>
+  filter(!is.na(year), !is.na(deaths),
+         age >= AGE_MIN, age <= AGE_MAX) |>
+  group_by(year, sex) |>
+  summarise(deaths = sum(deaths, na.rm = TRUE), .groups = "drop") |>
+  mutate(sex = str_to_title(sex)) |>
+  ggplot(aes(x = year, y = deaths, colour = sex, shape = sex)) +
+  geom_point(size = 1.5, alpha = 0.7) +
+  geom_line(linewidth = 0.4, alpha = 0.5) +
+  geom_vline(xintercept = 1972, linetype = "dashed", colour = "grey40") +
+  scale_colour_manual(values = c("Male" = "steelblue", "Female" = "coral")) +
+  labs(x = "Year", y = "Total deaths",
+       colour = "Sex", shape = "Sex",
+       subtitle = paste0("Ages ", AGE_MIN, "--", AGE_MAX)) +
+  theme_minimal(base_size = 12)
+```
+
 #### Visual decomposition
 
 @fig-ni-decomposition presents the four-panel decomposition for males aged `r AGE_MIN`--`r AGE_MAX` in Northern Ireland, 1922--2023.
@@ -258,75 +285,533 @@ tibble(
 
 ---
 
-### Systematic comparison across UK and Western Europe {#sec-results-scan}
+### East and West Germany {#sec-results-germany}
 
-The impulse-decay model is fitted to each comparator country. @fig-scan-ranking shows the AIC improvement from adding the impulse-decay term, and @fig-decay-profile shows the AIC profile over decay rates for each country.
+East and West Germany provide an instructive contrast. Both populations experienced the aftermath of WWII, but diverged sharply after partition: East Germany (DEUTE) under Soviet occupation and state socialism; West Germany (DEUTW) under Western integration and rapid economic growth. The HMD data cover 1956--2021 for both, beginning after the immediate post-war period. Previous work has constructed a "Synthetic Germany" series by weighting East and West German life expectancy to approximate a continuous pre-reunification national trajectory [@mintonhiam2022]; here we examine each component separately to characterise their distinct mortality dynamics.
+
+Because the German data begin in 1956 — after the NI model's pre-1938 and early phases — a simplified baseline is used: a quadratic age-year trend with the same impulse-decay overlay. Rather than fixing the onset at 1972, we scan over candidate onset years for each population and select the onset that minimises AIC, allowing the data to identify the most salient disruption.
+
+```{r}
+#| label: germany-setup
+#| include: false
+
+# Helper: fit and decompose for a non-NI country with simplified baseline
+fit_country_case <- function(country_data, k = OPTIMAL_DECAY_K,
+                             onset = TROUBLES_START_YEAR,
+                             age_range = c(AGE_MIN, AGE_MAX)) {
+  fit_one_sex <- function(dta, sex_val) {
+    sex_data <- dta |>
+      filter(sex == sex_val, !is.na(deaths), !is.na(exposure),
+             age >= age_range[1], age <= age_range[2]) |>
+      mutate(
+        lmr = calc_lmr(deaths, exposure),
+        yr_centred = year - median(year),
+        impulse = ifelse(year < onset, 0, (1 - k) ^ (year - onset))
+      )
+
+    mod0 <- lm(lmr ~ as.factor(age) * (yr_centred + I(yr_centred^2)),
+               data = sex_data)
+    mod1 <- lm(lmr ~ as.factor(age) * (yr_centred + I(yr_centred^2) + impulse),
+               data = sex_data)
+
+    preds <- sex_data |>
+      modelr::add_predictions(mod1, var = "pred_full")
+    counter <- sex_data |>
+      mutate(impulse = 0) |>
+      broom::augment(mod1, newdata = _) |>
+      select(year, age, pred_counter = .fitted)
+
+    decomp <- preds |>
+      left_join(counter, by = c("year", "age")) |>
+      mutate(impulse_decay = pred_full - pred_counter,
+             residual = pred_full - lmr)
+
+    # Extract impulse coefficients by age
+    coefs <- coef(mod1)
+    imp_coefs <- coefs[grep("impulse", names(coefs))]
+    base_imp <- imp_coefs[1]
+    inter_imp <- if (length(imp_coefs) > 1) imp_coefs[-1] else numeric(0)
+    age_effects <- c(base_imp, base_imp + inter_imp)
+    names(age_effects) <- age_range[1]:age_range[2]
+
+    list(mod0 = mod0, mod1 = mod1, decomp = decomp,
+         age_effects = age_effects, sex = sex_val)
+  }
+
+  male <- fit_one_sex(country_data, "male")
+  female <- fit_one_sex(country_data, "female")
+
+  list(male = male, female = female, data = country_data,
+       onset = onset, k = k)
+}
+
+# Scan over onset years to find optimal for a given country
+find_optimal_onset <- function(country_data, k = OPTIMAL_DECAY_K,
+                                onset_range = NULL,
+                                age_range = c(AGE_MIN, AGE_MAX)) {
+  male_data <- country_data |>
+    filter(sex == "male", !is.na(deaths), !is.na(exposure),
+           age >= age_range[1], age <= age_range[2]) |>
+    mutate(lmr = calc_lmr(deaths, exposure),
+           yr_centred = year - median(year))
+
+  if (is.null(onset_range)) {
+    yr_range <- range(male_data$year)
+    # Need at least 5 years before and after onset
+    onset_range <- seq(yr_range[1] + 5, yr_range[2] - 5)
+  }
+
+  aic_by_onset <- map_dfr(onset_range, function(t0) {
+    d <- male_data |>
+      mutate(impulse = ifelse(year < t0, 0, (1 - k)^(year - t0)))
+    mod <- tryCatch(
+      lm(lmr ~ as.factor(age) * (yr_centred + I(yr_centred^2) + impulse), data = d),
+      error = function(e) NULL)
+    if (is.null(mod)) return(NULL)
+    tibble(onset = t0, aic = AIC(mod))
+  })
+
+  aic_by_onset
+}
+
+# Fit East and West Germany with onset scanning
+deute_data <- hmd |> filter(country_code == "DEUTE")
+deutw_data <- hmd |> filter(country_code == "DEUTW")
+
+deute_onset_scan <- find_optimal_onset(deute_data)
+deutw_onset_scan <- find_optimal_onset(deutw_data)
+
+deute_best_onset <- deute_onset_scan |> slice_min(aic) |> pull(onset)
+deutw_best_onset <- deutw_onset_scan |> slice_min(aic) |> pull(onset)
+
+deute_fit <- fit_country_case(deute_data, onset = deute_best_onset)
+deutw_fit <- fit_country_case(deutw_data, onset = deutw_best_onset)
+```
+
+#### Onset year scan
+
+@fig-germany-onset-scan shows the AIC profile over candidate onset years for East and West Germany. The data-driven onset identifies the most salient mortality disruption for each population.
+
+```{r}
+#| label: fig-germany-onset-scan
+#| fig-cap: "AIC profile over candidate onset years for East and West Germany. East Germany shows a clear minimum near 1990 (reunification), while West Germany's profile identifies a different optimal onset."
+#| fig-width: 8
+#| fig-height: 5
+
+bind_rows(
+  deute_onset_scan |> mutate(country = "East Germany"),
+  deutw_onset_scan |> mutate(country = "West Germany")
+) |>
+  group_by(country) |>
+  mutate(delta_aic = aic - min(aic)) |>
+  ungroup() |>
+  ggplot(aes(x = onset, y = delta_aic, colour = country)) +
+  geom_line(linewidth = 0.8) +
+  geom_vline(xintercept = 1990, linetype = "dotted", alpha = 0.5) +
+  annotate("text", x = 1990, y = Inf, label = "Reunification", vjust = 1.5,
+           size = 3, colour = "grey40") +
+  geom_vline(xintercept = 1972, linetype = "dashed", alpha = 0.3) +
+  annotate("text", x = 1972, y = Inf, label = "1972 (NI onset)", vjust = 3,
+           size = 2.5, colour = "grey60") +
+  scale_colour_manual(values = c("East Germany" = "firebrick",
+                                  "West Germany" = "steelblue")) +
+  labs(x = "Candidate onset year", y = "ΔAIC (relative to best)",
+       colour = NULL) +
+  coord_cartesian(ylim = c(0, 500)) +
+  theme_minimal(base_size = 12)
+```
+
+For East Germany, the optimal onset is `r deute_best_onset`, consistent with the shock of reunification. For West Germany, the optimal onset is `r deutw_best_onset`. The remaining analysis uses these data-driven onsets.
+
+#### East Germany (DEUTE)
+
+```{r}
+#| label: fig-deute-raw-counts
+#| fig-cap: "Total deaths by sex for ages 15--45 in East Germany, 1956--2021. Vertical dashed line at 1972."
+#| fig-width: 8
+#| fig-height: 5
+
+deute_data |>
+  filter(!is.na(year), !is.na(deaths),
+         age >= AGE_MIN, age <= AGE_MAX) |>
+  group_by(year, sex) |>
+  summarise(deaths = sum(deaths, na.rm = TRUE), .groups = "drop") |>
+  mutate(sex = str_to_title(sex)) |>
+  ggplot(aes(x = year, y = deaths, colour = sex, shape = sex)) +
+  geom_point(size = 1.5, alpha = 0.7) +
+  geom_line(linewidth = 0.4, alpha = 0.5) +
+  geom_vline(xintercept = 1972, linetype = "dashed", colour = "grey40") +
+  scale_colour_manual(values = c("Male" = "steelblue", "Female" = "coral")) +
+  labs(x = "Year", y = "Total deaths", colour = "Sex", shape = "Sex",
+       subtitle = paste0("East Germany, ages ", AGE_MIN, "--", AGE_MAX)) +
+  theme_minimal(base_size = 12)
+```
+
+```{r}
+#| label: fig-deute-decomposition
+#| fig-cap: "Decomposition of the mortality surface for males aged 15--45 in East Germany. (A) Observed. (B) Full model. (C) Counterfactual. (D) Impulse-decay component."
+#| fig-width: 10
+#| fig-height: 10
+
+deute_decomp <- deute_fit$male$decomp
+deute_lmr_range <- range(c(deute_decomp$lmr, deute_decomp$pred_full,
+                            deute_decomp$pred_counter), na.rm = TRUE)
+
+p_a <- ggplot(deute_decomp, aes(x = year, y = age, fill = lmr)) +
+  geom_tile() +
+  scale_fill_gradientn(colours = rev(RColorBrewer::brewer.pal(11, "Spectral")),
+                       limits = deute_lmr_range, name = "log₁₀(m)") +
+  labs(title = "A: Observed", x = "Year", y = "Age") +
+  theme_minimal(base_size = 11) + coord_fixed(ratio = 1)
+
+p_b <- ggplot(deute_decomp, aes(x = year, y = age, fill = pred_full)) +
+  geom_tile() +
+  scale_fill_gradientn(colours = rev(RColorBrewer::brewer.pal(11, "Spectral")),
+                       limits = deute_lmr_range, name = "log₁₀(m)") +
+  labs(title = "B: Full model", x = "Year", y = "Age") +
+  theme_minimal(base_size = 11) + coord_fixed(ratio = 1)
+
+p_c <- ggplot(deute_decomp, aes(x = year, y = age, fill = pred_counter)) +
+  geom_tile() +
+  scale_fill_gradientn(colours = rev(RColorBrewer::brewer.pal(11, "Spectral")),
+                       limits = deute_lmr_range, name = "log₁₀(m)") +
+  labs(title = "C: Counterfactual", x = "Year", y = "Age") +
+  theme_minimal(base_size = 11) + coord_fixed(ratio = 1)
+
+p_d <- ggplot(deute_decomp |> filter(year >= 1960),
+              aes(x = year, y = age, fill = impulse_decay)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "white", high = "firebrick",
+                       midpoint = 0, name = "Δ log₁₀(m)") +
+  labs(title = "D: Impulse-decay component", x = "Year", y = "Age") +
+  theme_minimal(base_size = 11) + coord_fixed(ratio = 1)
+
+(p_a + p_b) / (p_c + p_d)
+```
+
+```{r}
+#| label: fig-deute-sex-comparison
+#| fig-cap: "Impulse-decay coefficient by age for males and females in East Germany."
+#| fig-width: 8
+#| fig-height: 5
+
+bind_rows(
+  tibble(age = AGE_MIN:AGE_MAX,
+         effect = as.numeric(deute_fit$male$age_effects), sex = "Male"),
+  tibble(age = AGE_MIN:AGE_MAX,
+         effect = as.numeric(deute_fit$female$age_effects), sex = "Female")
+) |>
+  ggplot(aes(x = age, y = effect, colour = sex, shape = sex)) +
+  geom_point(size = 2) + geom_line(linewidth = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_colour_manual(values = c("Male" = "steelblue", "Female" = "coral")) +
+  labs(x = "Age", y = "Impulse-decay coefficient", colour = "Sex", shape = "Sex",
+       subtitle = "East Germany") +
+  theme_minimal(base_size = 12)
+```
+
+```{r}
+#| label: fig-deute-residuals
+#| fig-cap: "Residual surface for the full model fitted to East Germany males aged 15--45."
+#| fig-width: 8
+#| fig-height: 5
+
+deute_decomp |>
+  ggplot(aes(x = year, y = age, fill = residual)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red",
+                       midpoint = 0, limits = c(-0.6, 0.6),
+                       oob = scales::squish, name = "Residual") +
+  labs(x = "Year", y = "Age") +
+  theme_minimal(base_size = 12) + coord_fixed(ratio = 1)
+```
+
+```{r}
+#| label: tbl-deute-params
+#| tbl-cap: "Model comparison and parameter estimates for East Germany males."
+
+deute_rms0 <- rms(residuals(deute_fit$male$mod0))
+deute_rms1 <- rms(residuals(deute_fit$male$mod1))
+deute_peak_age <- as.integer(names(which.max(abs(deute_fit$male$age_effects))))
+deute_peak_effect <- max(abs(deute_fit$male$age_effects))
+deute_male_mean <- mean(abs(deute_fit$male$age_effects))
+deute_female_mean <- mean(abs(deute_fit$female$age_effects))
+
+tibble(
+  Measure = c(
+    "Onset year (data-driven)",
+    "AIC (baseline)", "AIC (full model)", "AIC improvement",
+    "RMSE (baseline)", "RMSE (full model)", "RMSE reduction",
+    "Peak age", "Peak impulse (log₁₀ units)",
+    "Mean male impulse", "Mean female impulse", "M/F ratio"
+  ),
+  Value = c(
+    as.character(deute_best_onset),
+    sprintf("%.0f", AIC(deute_fit$male$mod0)),
+    sprintf("%.0f", AIC(deute_fit$male$mod1)),
+    sprintf("%.0f", AIC(deute_fit$male$mod0) - AIC(deute_fit$male$mod1)),
+    sprintf("%.4f", deute_rms0),
+    sprintf("%.4f", deute_rms1),
+    sprintf("%.1f%%", 100 * (1 - deute_rms1 / deute_rms0)),
+    as.character(deute_peak_age),
+    sprintf("%.3f", deute_peak_effect),
+    sprintf("%.3f", deute_male_mean),
+    sprintf("%.3f", deute_female_mean),
+    sprintf("%.2f", deute_male_mean / deute_female_mean)
+  )
+) |>
+  knitr::kable()
+```
+
+#### West Germany (DEUTW)
+
+```{r}
+#| label: fig-deutw-raw-counts
+#| fig-cap: "Total deaths by sex for ages 15--45 in West Germany, 1956--2021. Vertical dashed line at 1972."
+#| fig-width: 8
+#| fig-height: 5
+
+deutw_data |>
+  filter(!is.na(year), !is.na(deaths),
+         age >= AGE_MIN, age <= AGE_MAX) |>
+  group_by(year, sex) |>
+  summarise(deaths = sum(deaths, na.rm = TRUE), .groups = "drop") |>
+  mutate(sex = str_to_title(sex)) |>
+  ggplot(aes(x = year, y = deaths, colour = sex, shape = sex)) +
+  geom_point(size = 1.5, alpha = 0.7) +
+  geom_line(linewidth = 0.4, alpha = 0.5) +
+  geom_vline(xintercept = 1972, linetype = "dashed", colour = "grey40") +
+  scale_colour_manual(values = c("Male" = "steelblue", "Female" = "coral")) +
+  labs(x = "Year", y = "Total deaths", colour = "Sex", shape = "Sex",
+       subtitle = paste0("West Germany, ages ", AGE_MIN, "--", AGE_MAX)) +
+  theme_minimal(base_size = 12)
+```
+
+```{r}
+#| label: fig-deutw-decomposition
+#| fig-cap: "Decomposition of the mortality surface for males aged 15--45 in West Germany. (A) Observed. (B) Full model. (C) Counterfactual. (D) Impulse-decay component."
+#| fig-width: 10
+#| fig-height: 10
+
+deutw_decomp <- deutw_fit$male$decomp
+deutw_lmr_range <- range(c(deutw_decomp$lmr, deutw_decomp$pred_full,
+                            deutw_decomp$pred_counter), na.rm = TRUE)
+
+p_a <- ggplot(deutw_decomp, aes(x = year, y = age, fill = lmr)) +
+  geom_tile() +
+  scale_fill_gradientn(colours = rev(RColorBrewer::brewer.pal(11, "Spectral")),
+                       limits = deutw_lmr_range, name = "log₁₀(m)") +
+  labs(title = "A: Observed", x = "Year", y = "Age") +
+  theme_minimal(base_size = 11) + coord_fixed(ratio = 1)
+
+p_b <- ggplot(deutw_decomp, aes(x = year, y = age, fill = pred_full)) +
+  geom_tile() +
+  scale_fill_gradientn(colours = rev(RColorBrewer::brewer.pal(11, "Spectral")),
+                       limits = deutw_lmr_range, name = "log₁₀(m)") +
+  labs(title = "B: Full model", x = "Year", y = "Age") +
+  theme_minimal(base_size = 11) + coord_fixed(ratio = 1)
+
+p_c <- ggplot(deutw_decomp, aes(x = year, y = age, fill = pred_counter)) +
+  geom_tile() +
+  scale_fill_gradientn(colours = rev(RColorBrewer::brewer.pal(11, "Spectral")),
+                       limits = deutw_lmr_range, name = "log₁₀(m)") +
+  labs(title = "C: Counterfactual", x = "Year", y = "Age") +
+  theme_minimal(base_size = 11) + coord_fixed(ratio = 1)
+
+p_d <- ggplot(deutw_decomp |> filter(year >= 1960),
+              aes(x = year, y = age, fill = impulse_decay)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "white", high = "firebrick",
+                       midpoint = 0, name = "Δ log₁₀(m)") +
+  labs(title = "D: Impulse-decay component", x = "Year", y = "Age") +
+  theme_minimal(base_size = 11) + coord_fixed(ratio = 1)
+
+(p_a + p_b) / (p_c + p_d)
+```
+
+```{r}
+#| label: fig-deutw-sex-comparison
+#| fig-cap: "Impulse-decay coefficient by age for males and females in West Germany."
+#| fig-width: 8
+#| fig-height: 5
+
+bind_rows(
+  tibble(age = AGE_MIN:AGE_MAX,
+         effect = as.numeric(deutw_fit$male$age_effects), sex = "Male"),
+  tibble(age = AGE_MIN:AGE_MAX,
+         effect = as.numeric(deutw_fit$female$age_effects), sex = "Female")
+) |>
+  ggplot(aes(x = age, y = effect, colour = sex, shape = sex)) +
+  geom_point(size = 2) + geom_line(linewidth = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_colour_manual(values = c("Male" = "steelblue", "Female" = "coral")) +
+  labs(x = "Age", y = "Impulse-decay coefficient", colour = "Sex", shape = "Sex",
+       subtitle = "West Germany") +
+  theme_minimal(base_size = 12)
+```
+
+```{r}
+#| label: fig-deutw-residuals
+#| fig-cap: "Residual surface for the full model fitted to West Germany males aged 15--45."
+#| fig-width: 8
+#| fig-height: 5
+
+deutw_decomp |>
+  ggplot(aes(x = year, y = age, fill = residual)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red",
+                       midpoint = 0, limits = c(-0.6, 0.6),
+                       oob = scales::squish, name = "Residual") +
+  labs(x = "Year", y = "Age") +
+  theme_minimal(base_size = 12) + coord_fixed(ratio = 1)
+```
+
+```{r}
+#| label: tbl-deutw-params
+#| tbl-cap: "Model comparison and parameter estimates for West Germany males."
+
+deutw_rms0 <- rms(residuals(deutw_fit$male$mod0))
+deutw_rms1 <- rms(residuals(deutw_fit$male$mod1))
+deutw_peak_age <- as.integer(names(which.max(abs(deutw_fit$male$age_effects))))
+deutw_peak_effect <- max(abs(deutw_fit$male$age_effects))
+deutw_male_mean <- mean(abs(deutw_fit$male$age_effects))
+deutw_female_mean <- mean(abs(deutw_fit$female$age_effects))
+
+tibble(
+  Measure = c(
+    "Onset year (data-driven)",
+    "AIC (baseline)", "AIC (full model)", "AIC improvement",
+    "RMSE (baseline)", "RMSE (full model)", "RMSE reduction",
+    "Peak age", "Peak impulse (log₁₀ units)",
+    "Mean male impulse", "Mean female impulse", "M/F ratio"
+  ),
+  Value = c(
+    as.character(deutw_best_onset),
+    sprintf("%.0f", AIC(deutw_fit$male$mod0)),
+    sprintf("%.0f", AIC(deutw_fit$male$mod1)),
+    sprintf("%.0f", AIC(deutw_fit$male$mod0) - AIC(deutw_fit$male$mod1)),
+    sprintf("%.4f", deutw_rms0),
+    sprintf("%.4f", deutw_rms1),
+    sprintf("%.1f%%", 100 * (1 - deutw_rms1 / deutw_rms0)),
+    as.character(deutw_peak_age),
+    sprintf("%.3f", deutw_peak_effect),
+    sprintf("%.3f", deutw_male_mean),
+    sprintf("%.3f", deutw_female_mean),
+    sprintf("%.2f", deutw_male_mean / deutw_female_mean)
+  )
+) |>
+  knitr::kable()
+```
+
+---
+
+### Systematic comparison across all HMD countries {#sec-results-scan}
+
+The impulse-decay model is fitted to every HMD country with sufficient data. @fig-scan-ranking shows the AIC improvement from adding the impulse-decay term, and @fig-decay-profile shows the AIC profile over decay rates for selected countries.
 
 ```{r}
 #| label: scan-all-countries
 #| include: false
 
-# Fit impulse-decay model to each country and compute AIC improvement
+# Fit impulse-decay model to each country and compute AIC improvement + sex ratio
 scan_results <- map_dfr(unique(hmd$country_code), function(code) {
   country_data <- hmd |> filter(country_code == code)
 
-  # Check we have enough data
-  male_data <- country_data |>
-    filter(sex == "male", !is.na(deaths), !is.na(exposure),
-           age >= AGE_MIN, age <= AGE_MAX) |>
-    mutate(lmr = calc_lmr(deaths, exposure))
+  # Helper: fit impulse-decay for one sex
+  fit_sex <- function(sex_val) {
+    sex_data <- country_data |>
+      filter(sex == sex_val, !is.na(deaths), !is.na(exposure),
+             age >= AGE_MIN, age <= AGE_MAX) |>
+      mutate(lmr = calc_lmr(deaths, exposure))
 
-  if (nrow(male_data) < 500) return(NULL)
+    if (nrow(sex_data) < 500) return(list(data = NULL, mod0 = NULL, mod1 = NULL))
 
-  # Prepare data with NI-style phases (adapt to each country's year range)
-  min_yr <- min(male_data$year)
-  model_data <- male_data |>
-    mutate(
-      yr_pre_38 = year <= 1938,
-      early_phase = ifelse(yr_pre_38, year - min_yr, 0),
-      impr_phase = year >= 1939 & year <= 1955,
-      yr_since_imp = ifelse(impr_phase, year - 1939, 0),
-      post_55 = year > 1955,
-      yr_since_imp2 = ifelse(post_55, year - 1955, 0),
-      trbls_kpc = troubles_decay(year, OPTIMAL_DECAY_K)
+    min_yr <- min(sex_data$year)
+    model_data <- sex_data |>
+      mutate(
+        yr_pre_38 = year <= 1938,
+        early_phase = ifelse(yr_pre_38, year - min_yr, 0),
+        impr_phase = year >= 1939 & year <= 1955,
+        yr_since_imp = ifelse(impr_phase, year - 1939, 0),
+        post_55 = year > 1955,
+        yr_since_imp2 = ifelse(post_55, year - 1955, 0),
+        trbls_kpc = troubles_decay(year, OPTIMAL_DECAY_K)
+      )
+
+    mod0 <- tryCatch(
+      lm(lmr ~ as.factor(age) * (yr_pre_38 + early_phase + impr_phase +
+           yr_since_imp + yr_since_imp2), data = model_data),
+      error = function(e) NULL
+    )
+    mod1 <- tryCatch(
+      lm(lmr ~ as.factor(age) * (yr_pre_38 + early_phase + impr_phase +
+           yr_since_imp + yr_since_imp2 + trbls_kpc), data = model_data),
+      error = function(e) NULL
     )
 
-  # Baseline model (no Troubles)
-  mod0 <- tryCatch(
-    lm(lmr ~ as.factor(age) * (yr_pre_38 + early_phase + impr_phase +
-         yr_since_imp + yr_since_imp2), data = model_data),
-    error = function(e) NULL
-  )
+    list(data = model_data, mod0 = mod0, mod1 = mod1)
+  }
 
-  # Full model (with Troubles decay)
-  mod1 <- tryCatch(
-    lm(lmr ~ as.factor(age) * (yr_pre_38 + early_phase + impr_phase +
-         yr_since_imp + yr_since_imp2 + trbls_kpc), data = model_data),
-    error = function(e) NULL
-  )
+  male <- fit_sex("male")
+  female <- fit_sex("female")
 
-  if (is.null(mod0) || is.null(mod1)) return(NULL)
+  if (is.null(male$mod0) || is.null(male$mod1)) return(NULL)
+
+  # Extract mean absolute impulse-decay coefficient for each sex
+  get_mean_impulse <- function(mod) {
+    if (is.null(mod)) return(NA_real_)
+    coefs <- coef(mod)
+    trbls <- coefs[grep("trbls_kpc", names(coefs))]
+    base <- trbls[1]
+    inters <- if (length(trbls) > 1) trbls[-1] else numeric(0)
+    age_effects <- c(base, base + inters)
+    mean(abs(age_effects))
+  }
+
+  male_impulse <- get_mean_impulse(male$mod1)
+  female_impulse <- get_mean_impulse(female$mod1)
+  mf_ratio <- if (!is.na(female_impulse) && female_impulse > 0) {
+    male_impulse / female_impulse
+  } else {
+    NA_real_
+  }
 
   tibble(
     country_code = code,
-    aic_baseline = AIC(mod0),
-    aic_full = AIC(mod1),
-    aic_improvement = AIC(mod0) - AIC(mod1),
-    rms_baseline = rms(residuals(mod0)),
-    rms_full = rms(residuals(mod1)),
-    rms_reduction = 1 - rms(residuals(mod1)) / rms(residuals(mod0))
+    aic_baseline = AIC(male$mod0),
+    aic_full = AIC(male$mod1),
+    aic_improvement = AIC(male$mod0) - AIC(male$mod1),
+    rms_baseline = rms(residuals(male$mod0)),
+    rms_full = rms(residuals(male$mod1)),
+    rms_reduction = 1 - rms(residuals(male$mod1)) / rms(residuals(male$mod0)),
+    male_impulse = male_impulse,
+    female_impulse = female_impulse,
+    mf_ratio = mf_ratio
   )
 })
 
 country_labels <- c(
-  GBR_NIR = "N. Ireland", GBR_SCO = "Scotland", GBRTENW = "England & Wales",
-  IRL = "Ireland", FRATNP = "France", BEL = "Belgium",
-  LUX = "Luxembourg", NLD = "Netherlands", DEUTNP = "Germany",
-  CHE = "Switzerland", AUT = "Austria"
+  GBR_NIR = "N. Ireland", GBR_NP = "UK", GBR_SCO = "Scotland",
+  GBRCENW = "England & Wales (civ)", GBRTENW = "England & Wales",
+  AUT = "Austria", BEL = "Belgium", CHE = "Switzerland",
+  DEUTNP = "Germany", DEUTE = "East Germany", DEUTW = "West Germany",
+  FRATNP = "France", FRACNP = "France (civ)", IRL = "Ireland",
+  LUX = "Luxembourg", NLD = "Netherlands",
+  ESP = "Spain", GRC = "Greece", ITA = "Italy", PRT = "Portugal",
+  DNK = "Denmark", FIN = "Finland", ISL = "Iceland",
+  NOR = "Norway", SWE = "Sweden",
+  BGR = "Bulgaria", CZE = "Czechia", HRV = "Croatia",
+  HUN = "Hungary", POL = "Poland", SVK = "Slovakia", SVN = "Slovenia",
+  EST = "Estonia", LTU = "Lithuania", LVA = "Latvia",
+  BLR = "Belarus", RUS = "Russia", UKR = "Ukraine",
+  ISR = "Israel", CAN = "Canada", CHL = "Chile", USA = "USA",
+  AUS = "Australia", JPN = "Japan", KOR = "South Korea",
+  NZL_MA = "NZ Māori", NZL_NM = "NZ non-Māori", NZL_NP = "New Zealand",
+  TWN = "Taiwan"
 )
 
 scan_results <- scan_results |>
-  mutate(country = country_labels[country_code]) |>
+  mutate(country = coalesce(country_labels[country_code], country_code)) |>
   arrange(desc(aic_improvement))
 ```
 
@@ -388,6 +873,48 @@ ggplot(decay_profiles, aes(x = decay_rate, y = delta_aic, colour = country)) +
                                           breaks = c(1, 2, 5, 10, 20, 50))) +
   coord_cartesian(ylim = c(0, 200)) +
   theme_minimal(base_size = 12)
+```
+
+#### Sex-ratio diagnostic
+
+The ratio of male to female impulse-decay coefficients characterises the nature of each detected disruption. @fig-sex-ratio plots this ratio against the AIC improvement (detection strength) for all countries in the scan.
+
+```{r}
+#| label: fig-sex-ratio
+#| fig-cap: "Male-to-female impulse ratio versus detection strength across all HMD countries. Countries above the dashed line (ratio = 1) show predominantly male excess mortality. Northern Ireland's high ratio reflects combatant/sectarian violence concentrated among young men. Countries that experienced total war on their territory (e.g. France, Belgium) show lower ratios, reflecting civilian exposure in both sexes. Negative controls (Sweden, Switzerland) cluster near the origin."
+#| fig-width: 9
+#| fig-height: 7
+
+scan_labelled <- scan_results |>
+  filter(!is.na(mf_ratio), is.finite(mf_ratio))
+
+ggplot(scan_labelled,
+       aes(x = aic_improvement, y = mf_ratio, label = country)) +
+  geom_hline(yintercept = 1, linetype = "dashed", colour = "grey50") +
+  geom_point(aes(size = male_impulse), alpha = 0.7, colour = "steelblue") +
+  geom_text(aes(label = country), size = 2.5, vjust = -0.8,
+            check_overlap = TRUE) +
+  scale_size_continuous(name = "Male impulse\n(mean |coef|)", range = c(1, 6)) +
+  labs(x = "AIC improvement (detection strength)",
+       y = "Male / Female impulse ratio") +
+  theme_minimal(base_size = 12)
+```
+
+```{r}
+#| label: tbl-sex-ratio
+#| tbl-cap: "Male-to-female impulse ratio for countries with detectable disruptions (AIC improvement > 50). A high ratio indicates predominantly male excess mortality, consistent with combatant or sectarian violence; a ratio near 1 indicates both-sex exposure, consistent with total war, occupation, or non-conflict disruption."
+
+scan_results |>
+  filter(aic_improvement > 50, !is.na(mf_ratio)) |>
+  arrange(desc(mf_ratio)) |>
+  transmute(
+    Country = country,
+    `AIC improvement` = sprintf("%.0f", aic_improvement),
+    `Male impulse` = sprintf("%.3f", male_impulse),
+    `Female impulse` = sprintf("%.3f", female_impulse),
+    `M/F ratio` = sprintf("%.2f", mf_ratio)
+  ) |>
+  knitr::kable()
 ```
 
 ---

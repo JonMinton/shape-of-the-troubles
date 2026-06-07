@@ -66,3 +66,7 @@ source("R/config.R")
 
 ::: {#refs}
 :::
+
+{{< include _sections/06-appendix.qmd >}}
+
+{{< include _sections/07-appendix-bayesian.qmd >}}

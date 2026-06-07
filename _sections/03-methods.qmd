@@ -28,7 +28,7 @@ The key methodological claim of this paper is that this signature can be detecte
 
 ### Data
 
-All-cause mortality counts and population exposure estimates, disaggregated by sex and single year of age and period, were obtained from the Human Mortality Database [@hmd2024] for all available countries. The primary case study is Northern Ireland (`GBR_NIR`, 1922--2023). Additional case studies include Algeria (mortality surface data from national actuarial sources) and a systematic scan of all HMD countries.
+All-cause mortality counts and population exposure estimates, disaggregated by sex and single year of age and period, were obtained from the Human Mortality Database [@hmd2024; @hmdhfdplus2024] for all available countries (49 populations at the time of download). The primary case study is Northern Ireland (`GBR_NIR`, 1922--2023), with a systematic scan of all HMD countries providing both positive and negative controls.
 
 All analyses were performed using R [@rcoreteam2024]. Code to reproduce all analyses is available at <https://github.com/JonMinton/shape-of-the-troubles>.
 

@@ -14,7 +14,7 @@ library(tidyverse)
 # --- Configuration ---
 source("R/config.R")
 
-countries <- unique(c(UK_CODES, WESTERN_EUROPE_CODES))
+countries <- ALL_HMD_CODES
 
 hmd_username <- Sys.getenv("HMD_USERNAME")
 hmd_password <- Sys.getenv("HMD_PASSWORD")

@@ -11,6 +11,31 @@ WESTERN_EUROPE_CODES <- c(
   "DEUTNP", "CHE", "AUT"
 )
 
+# All HMD country codes for systematic scan
+ALL_HMD_CODES <- c(
+  # UK components
+  "GBR_NIR", "GBR_NP", "GBR_SCO", "GBRCENW", "GBRTENW",
+  # Western Europe
+  "AUT", "BEL", "CHE", "DEUTNP", "DEUTE", "DEUTW",
+  "FRATNP", "FRACNP", "IRL", "LUX", "NLD",
+  # Southern Europe
+  "ESP", "GRC", "ITA", "PRT",
+  # Scandinavia
+  "DNK", "FIN", "ISL", "NOR", "SWE",
+  # Central & Eastern Europe
+  "BGR", "CZE", "HRV", "HUN", "POL", "SVK", "SVN",
+  # Baltic states
+  "EST", "LTU", "LVA",
+  # Former Soviet Union
+  "BLR", "RUS", "UKR",
+  # Middle East
+  "ISR",
+  # Americas
+  "CAN", "CHL", "USA",
+  # Asia-Pacific
+  "AUS", "JPN", "KOR", "NZL_MA", "NZL_NM", "NZL_NP", "TWN"
+)
+
 # Model parameters
 OPTIMAL_DECAY_K <- 0.09748423
 TROUBLES_HALFLIFE <- log(0.5) / log(1 - OPTIMAL_DECAY_K) # ~6.76 years
